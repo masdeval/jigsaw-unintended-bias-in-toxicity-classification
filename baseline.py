@@ -167,8 +167,19 @@ print('Test ROC AUC: %.3f' %auc)
 print(loaded_model.score(X_test, Y_test))
 print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
 
-
-
+print('\n Wiki Toxicity test set \n')
+debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/data/wiki_toxicity_test.csv"
+debias_test = pd.read_csv(debias_path)
+#debias_test['toxic'] = debias_test['toxic'].apply(lambda x: 1 if x == 'True' else 0)
+vocabulary = pickle.load(open('vocabulary.save', 'rb'))
+tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True, vocabulary = vocabulary)
+X_test = tokens.fit_transform(debias_test['comment'])
+Y_test = debias_test['is_toxic']
+pred = loaded_model.predict_proba(X_test)[:, 1]
+auc = roc_auc_score(Y_test, pred)
+print('Test ROC AUC: %.3f' %auc)
+print(loaded_model.score(X_test, Y_test))
+print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
 
 
 # Training with cross-validation
