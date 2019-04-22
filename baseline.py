@@ -100,6 +100,14 @@ print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
 
 print('\nUsing the debias dataset \n')
 
+# This dataset is one tool in evaluating our de-biasing efforts. For a given template, a large difference in
+# model scores when single words are substituted may point to a bias problem. For example, if "I am a gay man" g
+# ets a much higher score than "I am a tall man", this may indicate bias in the model.
+#
+# The madlibs dataset contains 89k examples generated from templates and word lists. The dataset is
+# eval_datasets/bias_madlibs_89k.csv, a CSV consisting of 2 columns. The generated text is in Text, and
+# the label is Label, either BAD or NOT_BAD.
+
 debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/bias_madlibs_77k.csv"
 debias_test = pd.read_csv(debias_path)
 debias_test['Label'] = debias_test['Label'].apply(lambda x: 1 if x == 'BAD' else 0)
