@@ -1,0 +1,37 @@
+/home/christian/anaconda5/bin/python3.6 "/home/christian/GWU/Bias in AI/jigsaw-unintended-bias-in-toxicity-classification/baseline.py"
+Test ROC AUC: 0.888
+0.9058395109897256
+[[52783  1187]
+ [ 4605  2937]]
+
+Using the debias dataset
+
+Test ROC AUC: 0.836
+0.608092576145447
+[[38282     0]
+ [30006  8276]]
+
+Using the fuzzy dataset
+
+First the fuzzed
+
+Test ROC AUC: 0.883
+0.8827077747989276
+[[1230   14]
+ [ 161   87]]
+
+ Now the original test set
+
+Test ROC AUC: 0.909
+0.8941018766756033
+[[1232   12]
+ [ 146  102]]
+
+ Wiki Toxicity test set
+
+Test ROC AUC: 0.884
+0.9330634532103182
+[[28583   235]
+ [ 1898  1150]]
+
+Process finished with exit code 0
