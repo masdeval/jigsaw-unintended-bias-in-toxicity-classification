@@ -39,6 +39,13 @@ def firstExecution():
       Y_train = pd.concat([Y_train,Y_train_aux])
       Y_test = pd.concat([Y_test,Y_test_aux])
 
+    X_train = sklearn.utils.shuffle(pd.concat([X_train,Y_train],axis=1))
+    X_test = sklearn.utils.shuffle(pd.concat([X_test, Y_test], axis=1))
+    Y_train = X_train.loc[:,['id','toxic']]
+    Y_test = X_test.loc[:,['id','toxic']]
+    X_train.drop(['id','toxic'],inplace=True,axis=1)
+    X_test.drop(['id','toxic'],inplace=True,axis=1)
+
     # tokens = CountVectorizer(max_features = 10000, lowercase=True, binary=False, ngram_range=(1,2))
     tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True)
     X_train = tokens.fit_transform(X_train['comment_text'])
