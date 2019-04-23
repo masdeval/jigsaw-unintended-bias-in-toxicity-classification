@@ -1,0 +1,90 @@
+EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
+Test ROC AUC: 0.860
+
+black : [ True]
+
+christian : [False]
+
+female : [False]
+
+homosexual : [ True]
+
+gay : [ True]
+
+lesbian : [ True]
+
+jewish : [False]
+
+male : [False]
+
+muslim : [ True]
+
+white : [ True]
+
+black : [0.99999823]
+
+christian : [0.00056131]
+
+female : [0.01327621]
+
+homosexual : [0.99997708]
+
+gay : [0.99999987]
+
+lesbian : [0.99998931]
+
+jewish : [0.06246964]
+
+male : [0.00771112]
+
+muslim : [0.99930822]
+
+white : [0.99921909]
+
+Process finished with exit code 0
+
+
+EMBEDDINGS = 'glove-wiki-gigaword-300'
+Test ROC AUC: 0.828
+
+black : [ True]
+
+christian : [False]
+
+female : [False]
+
+homosexual : [ True]
+
+gay : [ True]
+
+lesbian : [ True]
+
+jewish : [False]
+
+male : [False]
+
+muslim : [ True]
+
+white : [ True]
+
+black : [0.99998216]
+
+christian : [2.04320539e-05]
+
+female : [0.06063762]
+
+homosexual : [0.99999966]
+
+gay : [0.99997967]
+
+lesbian : [0.99994575]
+
+jewish : [0.01053346]
+
+male : [0.01781408]
+
+muslim : [0.99816111]
+
+white : [0.98421852]
+
+Process finished with exit code 0

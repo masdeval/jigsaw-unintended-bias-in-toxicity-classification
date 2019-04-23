@@ -18,6 +18,9 @@ from sklearn.linear_model import  LogisticRegressionCV
 import gc
 import pickle
 
+#EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
+EMBEDDINGS = 'glove-wiki-gigaword-300'
+
 
 def readWordvec(file, kv = True):
     if kv == True:
@@ -33,6 +36,7 @@ def buildVector(tokens, word2vec, size=150):
             vec += word2vec[word]
             count += 1.
         except KeyError: # handling the case where the token is not present
+            print("\nWord not found : " + word)
             continue
     if count != 0:
         vec /= count
@@ -65,7 +69,7 @@ def createFeatures(X_train):
 
     import gensim.downloader as api
     # model = api.load("glove-twitter-200")
-    glove = api.load("glove-wiki-gigaword-300")
+    glove = api.load(EMBEDDINGS)
 
     features = []
     # Creating a representation for the whole tweet using Glove wordvec
@@ -140,23 +144,37 @@ def firstExecution():
     model = trainModel(createFeatures(X_train), Y_train)
 
     auc = roc_auc_score(Y_test, model.predict_proba(createFeatures(X_test))[:, 1])
-    print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.82
+    print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.828
 
-#firstExecution()
+firstExecution()
 
 # Now starts the evaluation of the model regarding bias
 
-X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
-Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
+# X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
+# Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
+# loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
+# features = createFeatures(X_test)
+# pred = loaded_model.predict_proba(features)[:, 1]
+# auc = roc_auc_score(Y_test, pred)
+# print('Test ROC AUC: %.3f' %auc)
+# print(loaded_model.score(features, Y_test))
+# print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+
+
+groups = ['black','christian','female',
+          'homosexual', 'gay', 'lesbian','jewish','male','muslim',
+          'white']
+
 loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-pred = loaded_model.predict_proba(createFeatures(X_test))[:, 1]
-auc = roc_auc_score(Y_test, pred)
-print('Test ROC AUC: %.3f' %auc)
-print(loaded_model.score(X_test, Y_test))
-print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+import gensim.downloader as api
+glove = api.load(EMBEDDINGS)
 
 
+for w in groups:
+  print('\n' + w + ' : ' + str(loaded_model.predict(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))))
 
+for w in groups:
+  print('\n' + w + ' : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
 
 
 
