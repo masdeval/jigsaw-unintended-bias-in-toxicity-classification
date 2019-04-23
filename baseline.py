@@ -46,24 +46,33 @@ def firstExecution():
     X_train.drop(['id','toxic'],inplace=True,axis=1)
     X_test.drop(['id','toxic'],inplace=True,axis=1)
 
-    # tokens = CountVectorizer(max_features = 10000, lowercase=True, binary=False, ngram_range=(1,2))
-    tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True)
-    X_train = tokens.fit_transform(X_train['comment_text'])
-    X_test = tokens.transform(X_test['comment_text'])
-    # save the test set to be able to test the model later
-    scipy.sparse.save_npz('baseline_balanced_test_X.npz', X_test)
-    Y_test.to_csv('baseline_balanced_test_Y.csv', header=['id', 'toxic'])
-    # save the vocabulary
-    pickle.dump(tokens.vocabulary_, open('vocabulary.save', 'wb'))
+    X_train.to_csv('balanced_train.csv')
+    Y_train.to_csv('balanced_train_Y.csv')
+    X_test.to_csv('balanced_test.csv')
+    Y_test.to_csv('balanced_test_Y.csv', header=['id', 'toxic'])
 
     return X_train , X_test , Y_train['toxic'] , Y_test['toxic']
 
 
- X_train , X_test , Y_train , Y_test = create_balanced_train_test(wiki_data)
+ if os.path.isfile('balanced_train.csv'):
+     X_train = pd.read_csv('balanced_train.csv', sep = ',', usecols=['comment_text'])
+     X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
+     Y_train = pd.read_csv('balanced_train_Y.csv', sep = ',', usecols=['toxic'])
+     Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
+ else:
+     X_train , X_test , Y_train , Y_test = create_balanced_train_test(wiki_data)
 
  del wiki_data
  gc.collect()
 
+ # tokens = CountVectorizer(max_features = 10000, lowercase=True, binary=False, ngram_range=(1,2))
+ tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True)
+ X_train = tokens.fit_transform(X_train['comment_text'])
+ X_test = tokens.transform(X_test['comment_text'])
+ # save the vocabulary
+ pickle.dump(tokens.vocabulary_, open('vocabulary.save', 'wb'))
+
+ # save the test set to be able to test the model later
 
  def trainModel(X_train , Y_train):
     model = LogisticRegressionCV(penalty='l2',max_iter=200,solver='lbfgs',n_jobs=2)
@@ -84,14 +93,17 @@ def firstExecution():
 # The logistic regression model is also saved after training
 # firstExecution() encapsulates everything and is useful to quickly turn-off this part
 
-#firstExecution()
+firstExecution()
 
 
 # Now starts the evaluation of the model regarding bias
 
-X_test = scipy.sparse.load_npz('baseline_balanced_test_X.npz')
-Y_test = pd.read_csv('baseline_balanced_test_Y.csv', sep = ',', usecols=['toxic'])
+X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
+Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
 loaded_model = pickle.load(open('logistic_model.save', 'rb'))
+vocabulary = pickle.load(open('vocabulary.save', 'rb'))
+tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True, vocabulary = vocabulary)
+X_test = tokens.fit_transform(X_test['comment_text'])
 pred = loaded_model.predict_proba(X_test)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
@@ -153,7 +165,7 @@ print('Test ROC AUC: %.3f' %auc)
 print(loaded_model.score(X_test, Y_test))
 print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
 
-print('\n Now the original test set \n')
+print('\n Now the non-fuzzed test set \n')
 debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/toxicity_nonfuzzed_testset.csv"
 debias_test = pd.read_csv(debias_path)
 #debias_test['toxic'] = debias_test['toxic'].apply(lambda x: 1 if x == 'True' else 0)
