@@ -140,7 +140,7 @@ def firstExecution():
     model = trainModel(createFeatures(X_train), Y_train)
 
     auc = roc_auc_score(Y_test, model.predict_proba(createFeatures(X_test))[:, 1])
-    print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.888
+    print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.82
 
 #firstExecution()
 
