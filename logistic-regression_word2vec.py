@@ -17,10 +17,46 @@ import sklearn
 from sklearn.linear_model import  LogisticRegressionCV
 import gc
 import pickle
+import gensim.downloader as api
+
 
 #EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
 EMBEDDINGS = 'glove-wiki-gigaword-300'
 
+identity_detail = {
+
+    'name': str,
+    'comment_length': int,
+    'number_embeddings': int,
+    'mean_similarity': np.float32
+}
+
+groups = ['black','christian','female',
+          'homosexual_gay_or_lesbian','jewish','male','muslim',
+          'psychiatric_or_mental_illness','white']
+
+
+def identityDetails(comment,target_group,word2vec):
+
+    identity_detail['name'] = target_group
+    identity_detail['comment_length'] = len(comment)
+
+    similarities = list()
+    similarity = 1.0
+    normalized_identity = gensim.matutils.unitvec(word2vec[target_group]).astype(np.float32)
+    for x in gensim.utils.simple_preprocess(comment):
+        try:
+          similarity = (normalized_identity@gensim.matutils.unitvec(word2vec[x]).astype(np.float32))
+        except:
+          None
+        if similarity >= 1.0:
+            continue
+        else:
+            similarities.append(similarity)
+
+    identity_detail['number_embeddings'] = len(similarities)
+    identity_detail['mean_similarity'] = np.array(similarities).mean()
+    return  identity_detail
 
 def readWordvec(file, kv = True):
     if kv == True:
@@ -29,6 +65,7 @@ def readWordvec(file, kv = True):
         return Word2Vec.load(file)
 
 def buildVector(tokens, word2vec, size=150):
+
     vec = np.zeros(size)
     count = 0.
     for word in tokens:
@@ -44,7 +81,7 @@ def buildVector(tokens, word2vec, size=150):
     assert(len(vec) == size)
     return vec
 
-def buildTwitterVectorTFIDF(tokens, word2vec, tfidfVectorizer, tfidf, size=150):
+def buildVectorTFIDF(tokens, word2vec, tfidfVectorizer, tfidf, size=150):
     vec = np.zeros(size)
     count = 0.
     for word in tokens:
@@ -60,28 +97,30 @@ def buildTwitterVectorTFIDF(tokens, word2vec, tfidfVectorizer, tfidf, size=150):
     return vec
 
 
-
-groups = ['black','christian','female',
-          'homosexual_gay_or_lesbian','jewish','male','muslim',
-          'psychiatric_or_mental_illness','white']
-
 def createFeatures(X_train):
 
     import gensim.downloader as api
     # model = api.load("glove-twitter-200")
     glove = api.load(EMBEDDINGS)
 
+    ######  TF-IDF #####
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
+                                      ,lowercase=True
+                                      ,tokenizer=gensim.utils.simple_preprocess)
+    tfidf = tfidfVectorizer.fit_transform(X_train.loc[:,'comment_text'])
+    #####################
+
     features = []
     # Creating a representation for the whole tweet using Glove wordvec
-    for comment in (X_train['comment_text']):
+    for i,comment in enumerate(X_train['comment_text']):
 
       words = gensim.utils.simple_preprocess(comment)
       #words = stanfordPreprocessing.tokenize(word).split()
       #Without TF_IDF
-      features.append(buildVector(words,glove,size=300))
+      #features.append(buildVector(words,glove,size=300))
 
-      #With TF_IDF - do not remove punctuation since Glove was trained with it
-      #features.append(buildTwitterVectorTFIDF(tweet, model, tfidfVectorizer, tfidf.getrow(i).toarray(), size=200))
+      features.append(buildVectorTFIDF(words, glove, tfidfVectorizer, tfidf.getrow(i).toarray(), size=300))
 
     del glove
     return features
@@ -124,6 +163,15 @@ def firstExecution():
     wiki_data = pd.read_csv(file_path, sep=',')
     wiki_data['toxic'] = wiki_data['target'] > 0.5
 
+    # embeddings = api.load(EMBEDDINGS)
+    # toxic_frame = wiki_data[(wiki_data['toxic']==False) & (wiki_data['black'] > 0.5)]
+    # for index, sample in toxic_frame.iterrows():
+    #   #for g in groups:
+    #       #if sample.loc['black'] > 0.5:
+    #           print('\n'+str(identityDetails(sample.loc['comment_text'],'black',embeddings)))
+    # del embeddings
+    # gc.collect()
+
     if os.path.isfile('balanced_train.csv'):
         X_train = pd.read_csv('balanced_train.csv', sep=',', usecols=['comment_text'])
         X_test = pd.read_csv('balanced_test.csv', sep=',', usecols=['comment_text'])
@@ -135,18 +183,13 @@ def firstExecution():
     del wiki_data
     gc.collect()
 
-    ######  TF-IDF #####
-    #from sklearn.feature_extraction.text import TfidfVectorizer
-    #tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=model.wv.vocab.keys(),lowercase=True)
-    #tfidf = tfidfVectorizer.fit_transform(data)
-    #####################
 
     model = trainModel(createFeatures(X_train), Y_train)
 
     auc = roc_auc_score(Y_test, model.predict_proba(createFeatures(X_test))[:, 1])
     print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.828
 
-firstExecution()
+#firstExecution()
 
 # Now starts the evaluation of the model regarding bias
 
@@ -169,9 +212,6 @@ loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
 import gensim.downloader as api
 glove = api.load(EMBEDDINGS)
 
-
-for w in groups:
-  print('\n' + w + ' : ' + str(loaded_model.predict(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))))
 
 for w in groups:
   print('\n' + w + ' : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
