@@ -42,8 +42,6 @@ confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
 print(confusionMatrix)
 print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
 
-print('\n List of false positives')
-
 print('\n Analysis per group')
 
 for g in groups:

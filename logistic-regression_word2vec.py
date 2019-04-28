@@ -163,15 +163,6 @@ def firstExecution():
     wiki_data = pd.read_csv(file_path, sep=',')
     wiki_data['toxic'] = wiki_data['target'] > 0.5
 
-    # embeddings = api.load(EMBEDDINGS)
-    # toxic_frame = wiki_data[(wiki_data['toxic']==False) & (wiki_data['black'] > 0.5)]
-    # for index, sample in toxic_frame.iterrows():
-    #   #for g in groups:
-    #       #if sample.loc['black'] > 0.5:
-    #           print('\n'+str(identityDetails(sample.loc['comment_text'],'black',embeddings)))
-    # del embeddings
-    # gc.collect()
-
     if os.path.isfile('balanced_train.csv'):
         X_train = pd.read_csv('balanced_train.csv', sep=',', usecols=['comment_text'])
         X_test = pd.read_csv('balanced_test.csv', sep=',', usecols=['comment_text'])
@@ -191,8 +182,6 @@ def firstExecution():
 
 #firstExecution()
 
-# Now starts the evaluation of the model regarding bias
-
 # X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
 # Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
 # loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
@@ -204,17 +193,7 @@ def firstExecution():
 # print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
 
 
-groups = ['black','christian','female',
-          'homosexual', 'gay', 'lesbian','jewish','male','muslim',
-          'white']
 
-loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-import gensim.downloader as api
-glove = api.load(EMBEDDINGS)
-
-
-for w in groups:
-  print('\n' + w + ' : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
 
 
 
