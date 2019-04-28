@@ -38,12 +38,14 @@ wiki_data = wiki_data.loc[:,['comment_text','toxic']+groups]
 print('overall fraction of comments labeled toxic:', class_balance_v2(wiki_data, keyword=None))
 print('overall class balance {:.1f}%\t{} examples'.format(
     100 * class_balance_v2(wiki_data, keyword=None), len(wiki_data)))
-
+print('\n')
 for term in groups:
   fraction =  class_balance_v2(wiki_data, term)
-  num = len(filter_frame_v2(wiki_data, term))
-  print('class balance for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
-
+  frame = filter_frame_v2(wiki_data, term)
+  num = len(frame)
+  print('Proportion of identity {:s} in train: {:.3f}%'.format(term,100*(len(frame)/len(wiki_data.index))))
+  print('Proportion of toxic examples for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
+  print('\n')
 
 # This is other way to compute it
 # for each group, print the number of cases that are toxic and not toxic
@@ -72,17 +74,17 @@ def class_balance(frame, keyword, length=None):
     frame = filter_frame(frame, keyword, length)
     return len(frame.query('toxic')) / len(frame)
 
-print('\n')
-print('overall fraction of comments labeled toxic:', class_balance(wiki_data, keyword=None))
-print('overall class balance {:.1f}%\t{} examples'.format(
-    100 * class_balance(wiki_data, keyword=None), len(wiki_data)))
-
-for term in groups:
-  if term == 'homosexual_gay_or_lesbian':
-      term = ['homosexual','gay','lesbian']
-  elif term == 'psychiatric_or_mental_illness':
-      continue
-  fraction =  class_balance(wiki_data, term)
-  num = len(filter_frame(wiki_data, term))
-  print('class balance for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
+# print('\n')
+# print('overall fraction of comments labeled toxic:', class_balance(wiki_data, keyword=None))
+# print('overall class balance {:.1f}%\t{} examples'.format(
+#     100 * class_balance(wiki_data, keyword=None), len(wiki_data)))
+#
+# for term in groups:
+#   if term == 'homosexual_gay_or_lesbian':
+#       term = ['homosexual','gay','lesbian']
+#   elif term == 'psychiatric_or_mental_illness':
+#       continue
+#   fraction =  class_balance(wiki_data, term)
+#   num = len(filter_frame(wiki_data, term))
+#   print('class balance for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
 

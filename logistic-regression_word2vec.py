@@ -23,40 +23,12 @@ import gensim.downloader as api
 #EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
 EMBEDDINGS = 'glove-wiki-gigaword-300'
 
-identity_detail = {
-
-    'name': str,
-    'comment_length': int,
-    'number_embeddings': int,
-    'mean_similarity': np.float32
-}
 
 groups = ['black','christian','female',
           'homosexual_gay_or_lesbian','jewish','male','muslim',
           'psychiatric_or_mental_illness','white']
 
 
-def identityDetails(comment,target_group,word2vec):
-
-    identity_detail['name'] = target_group
-    identity_detail['comment_length'] = len(comment)
-
-    similarities = list()
-    similarity = 1.0
-    normalized_identity = gensim.matutils.unitvec(word2vec[target_group]).astype(np.float32)
-    for x in gensim.utils.simple_preprocess(comment):
-        try:
-          similarity = (normalized_identity@gensim.matutils.unitvec(word2vec[x]).astype(np.float32))
-        except:
-          None
-        if similarity >= 1.0:
-            continue
-        else:
-            similarities.append(similarity)
-
-    identity_detail['number_embeddings'] = len(similarities)
-    identity_detail['mean_similarity'] = np.array(similarities).mean()
-    return  identity_detail
 
 def readWordvec(file, kv = True):
     if kv == True:
@@ -104,12 +76,12 @@ def createFeatures(X_train):
     glove = api.load(EMBEDDINGS)
 
     ######  TF-IDF #####
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
-                                      ,lowercase=True
-                                      ,tokenizer=gensim.utils.simple_preprocess)
-    tfidf = tfidfVectorizer.fit_transform(X_train.loc[:,'comment_text'])
-    #####################
+    # from sklearn.feature_extraction.text import TfidfVectorizer
+    # tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
+    #                                   ,lowercase=True
+    #                                   ,tokenizer=gensim.utils.simple_preprocess)
+    # tfidf = tfidfVectorizer.fit_transform(X_train.loc[:,'comment_text'])
+    # #####################
 
     features = []
     # Creating a representation for the whole tweet using Glove wordvec
@@ -118,9 +90,9 @@ def createFeatures(X_train):
       words = gensim.utils.simple_preprocess(comment)
       #words = stanfordPreprocessing.tokenize(word).split()
       #Without TF_IDF
-      #features.append(buildVector(words,glove,size=300))
-
-      features.append(buildVectorTFIDF(words, glove, tfidfVectorizer, tfidf.getrow(i).toarray(), size=300))
+      features.append(buildVector(words,glove,size=300))
+      #With tfidf
+      #features.append(buildVectorTFIDF(words, glove, tfidfVectorizer, tfidf.getrow(i).toarray(), size=300))
 
     del glove
     return features
@@ -176,22 +148,26 @@ def firstExecution():
 
 
     model = trainModel(createFeatures(X_train), Y_train)
-
-    auc = roc_auc_score(Y_test, model.predict_proba(createFeatures(X_test))[:, 1])
+    pred = model.predict_proba(createFeatures(X_test))[:, 1]
+    auc = roc_auc_score(Y_test, pred)
     print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.828
+    pickle.dump(pred, open('word2vec_prediction.save', 'wb'))
 
-#firstExecution()
+firstExecution()
 
-# X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
-# Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
-# loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-# features = createFeatures(X_test)
-# pred = loaded_model.predict_proba(features)[:, 1]
-# auc = roc_auc_score(Y_test, pred)
-# print('Test ROC AUC: %.3f' %auc)
-# print(loaded_model.score(features, Y_test))
-# print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
-
+# Simple evaluation
+X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text','target'])
+Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
+pred = pickle.load(open('word2vec_prediction.save', 'rb'))
+X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
+auc = roc_auc_score(Y_test, pred)
+print('Overall Test ROC AUC: %.3f' %auc)
+print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
+confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
+print(confusionMatrix)
+print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
+print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))
+print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + confusionMatrix[0][1]))))
 
 
 

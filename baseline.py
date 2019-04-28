@@ -3,6 +3,7 @@ import urllib
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.metrics import roc_auc_score
+import sklearn.metrics as metrics
 import numpy as np
 import gensim
 import sklearn
@@ -33,7 +34,7 @@ def firstExecution():
     # Creating a balanced Test/Train for different identities
     X_train = X_test = Y_train = Y_test = None
     for x in groups:
-      X_train_aux,X_test_aux,Y_train_aux,Y_test_aux = train_test_split(wiki_data.loc[wiki_data[x]>0.5,['comment_text']+groups],wiki_data.loc[wiki_data[x]>0.5,['id','toxic']],test_size=0.3,random_state=666)
+      X_train_aux,X_test_aux,Y_train_aux,Y_test_aux = train_test_split(wiki_data.loc[wiki_data[x]>0.5,['id','target','comment_text']+groups],wiki_data.loc[wiki_data[x]>0.5,['toxic']],test_size=0.3,random_state=666)
       X_train = pd.concat([X_train,X_train_aux])
       X_test = pd.concat([X_test,X_test_aux])
       Y_train = pd.concat([Y_train,Y_train_aux])
@@ -51,12 +52,12 @@ def firstExecution():
     X_test.to_csv('balanced_test.csv')
     Y_test.to_csv('balanced_test_Y.csv')
 
-    return X_train['comment_text'] , X_test['comment_text'] , Y_train['toxic'] , Y_test['toxic']
+    return X_train[['comment_text','target']] , X_test[['comment_text','target']] , Y_train['toxic'] , Y_test['toxic']
 
 
  if os.path.isfile('balanced_train.csv'):
-     X_train = pd.read_csv('balanced_train.csv', sep = ',', usecols=['comment_text'])
-     X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
+     X_train = pd.read_csv('balanced_train.csv', sep = ',', usecols=['comment_text','target'])
+     X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text','target'])
      Y_train = pd.read_csv('balanced_train_Y.csv', sep = ',', usecols=['toxic'])
      Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
  else:
@@ -67,8 +68,8 @@ def firstExecution():
 
  # tokens = CountVectorizer(max_features = 10000, lowercase=True, binary=False, ngram_range=(1,2))
  tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True)
- X_train = tokens.fit_transform(X_train['comment_text'])
- X_test = tokens.transform(X_test['comment_text'])
+ features_train = tokens.fit_transform(X_train['comment_text'])
+ features_test = tokens.transform(X_test['comment_text'])
  # save the vocabulary
  pickle.dump(tokens.vocabulary_, open('vocabulary.save', 'wb'))
 
@@ -81,10 +82,11 @@ def firstExecution():
     pickle.dump(model, open('logistic_model.save', 'wb'))
     return model
 
- model = trainModel(X_train , Y_train)
- auc = roc_auc_score(Y_test, model.predict_proba(X_test)[:, 1])
+ model = trainModel(features_train , Y_train)
+ pred = model.predict_proba(features_test)[:, 1]
+ auc = roc_auc_score(Y_test, pred)
  print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.888
-
+ pickle.dump(pred, open('baseline_predictions.save', 'wb'))
 
 
 # Inside this function are all the steps to train a simple bow classifier to predict toxicity.
@@ -97,17 +99,19 @@ def firstExecution():
 
 # Now starts the evaluation
 
-X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text'])
+X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text','target'])
 Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
-loaded_model = pickle.load(open('logistic_model.save', 'rb'))
-vocabulary = pickle.load(open('vocabulary.save', 'rb'))
-tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True, vocabulary = vocabulary)
-X_test = tokens.fit_transform(X_test['comment_text'])
-pred = loaded_model.predict_proba(X_test)[:, 1]
+pred = pickle.load(open('baseline_predictions.save', 'rb'))
+X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
 auc = roc_auc_score(Y_test, pred)
-print('Test ROC AUC: %.3f' %auc)
-print(loaded_model.score(X_test, Y_test))
-print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+print('Overall Test ROC AUC: %.3f' %auc)
+print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
+confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
+print(confusionMatrix)
+print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
+print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))
+print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + confusionMatrix[0][1]))))
+
 
 
 

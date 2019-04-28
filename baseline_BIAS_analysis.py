@@ -16,6 +16,22 @@ import pickle
 import gc
 import scipy
 
+
+def compute_bnsp_auc(df, subgroup):
+    """Computes the AUC of the within-subgroup positive examples and the background negative examples."""
+    subgroup_positive_examples = df[(df[subgroup]>0.5) & (df['toxic']==True)] #df[df[subgroup] & df[label]]
+    non_subgroup_negative_examples = df[(df[subgroup]<=0.5) & ~(df['toxic']==True)] #df[~df[subgroup] & ~df[label]]
+    examples = pd.concat([subgroup_positive_examples,non_subgroup_negative_examples],axis=0)
+    return roc_auc_score(examples['toxic'], examples['pred']) # compute_auc(examples[label], examples[model_name])
+
+def compute_bpsn_auc(df, subgroup):
+    """Computes the AUC of the within-subgroup negative examples and the background positive examples."""
+    subgroup_negative_examples = df[(df[subgroup]>0.5) & ~(df['toxic'])]
+    non_subgroup_positive_examples = df[(df[subgroup]<=0.5) & (df['toxic'])]
+    examples = pd.concat([subgroup_negative_examples,non_subgroup_positive_examples],axis=0)
+    return roc_auc_score(examples['toxic'], examples['pred']) # compute_auc(examples[label], examples[model_name])
+
+
 file_path ="train.csv"
 
 groups = ['black','christian','female',
@@ -28,38 +44,45 @@ groups = ['black','christian','female',
 
 X_test = pd.read_csv('balanced_test.csv', sep = ',')
 Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',',usecols=['toxic'])
+pred = pickle.load(open('baseline_predictions.save', 'rb'))
+X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
 
-loaded_model = pickle.load(open('logistic_model.save', 'rb'))
-vocabulary = pickle.load(open('vocabulary.save', 'rb'))
-tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True, vocabulary = vocabulary)
-
-test = tokens.fit_transform(X_test['comment_text'])
-pred = loaded_model.predict_proba(test)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Overall Test ROC AUC: %.3f' %auc)
-print(loaded_model.score(test, Y_test['toxic']))
+print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
 confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
 print(confusionMatrix)
 print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
+print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))
+print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + confusionMatrix[0][1]))))
+
 
 print('\n Analysis per group')
 
 for g in groups:
     test = X_test[X_test[g] > 0.5]
     test.reset_index(inplace=True)
-    features = tokens.fit_transform(test['comment_text'])
-    y_test = X_test.loc[X_test[g] > 0.5,['toxic']]
-    pred = loaded_model.predict_proba(features)[:, 1]
-    auc = roc_auc_score(y_test, pred)
+    pred = test['pred']
+    y_test = test['toxic']
+    # features = tokens.fit_transform(test['comment_text'])
+    # y_test = X_test.loc[X_test[g] > 0.5,['toxic']]
+    # pred = loaded_model.predict_proba(features)[:, 1]
+    auc = roc_auc_score(test['toxic'], pred)
     print('\nTest ROC AUC for group %s: %.3f' %(g,auc))
-    print(loaded_model.score(features, y_test['toxic']))
+    print(sklearn.metrics.accuracy_score(y_test, pred>0.5))
     print(sklearn.metrics.confusion_matrix(y_test, pred>0.5))
     confusionMatrix = sklearn.metrics.confusion_matrix(y_test, pred > 0.5)
     print("Acceptance rate: %.3f" % (100 * ((confusionMatrix[0][0] + confusionMatrix[0][1]) / len(y_test))))
+    print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / ( confusionMatrix[0][0] + confusionMatrix[1][0]) )))
+    print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / ( confusionMatrix[1][1] + confusionMatrix[0][1]) )))
+    print("BNSP: %.3f" % compute_bnsp_auc(X_test,g))
+    print("BPSN: %.3f" % compute_bpsn_auc(X_test,g))
     print('List of false positives')
-    print(([ v['comment_text'] if (pred[i]>0.5 and v['toxic']==False) else '' for i,v in test.iterrows() ]))
+    #print(([ v['comment_text'] if (pred[i]>0.5 and v['toxic']==False) else '' for i,v in test.iterrows() ]))
 
 
+
+loaded_model = pickle.load(open('logistic_model.save', 'rb'))
 
 print('\nUsing the jigsaw debias dataset \n')
 

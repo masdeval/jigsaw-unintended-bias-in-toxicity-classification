@@ -20,86 +20,26 @@ import pickle
 import gensim.downloader as api
 
 
-#EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
-EMBEDDINGS = 'glove-wiki-gigaword-300'
-
-import gensim.downloader as api
-glove = api.load(EMBEDDINGS)
-
-identity_detail = {
-
-    'name': str,
-    'comment_length': int,
-    'number_embeddings': int,
-    'mean_similarity': np.float32
-}
 
 groups = ['black','christian','female',
           'homosexual_gay_or_lesbian','jewish','male','muslim',
           'psychiatric_or_mental_illness','white']
 
+def compute_bnsp_auc(df, subgroup):
+    """Computes the AUC of the within-subgroup positive examples and the background negative examples."""
+    # error here means False Negative for subgroup and False Positive for others
+    subgroup_positive_examples = df[(df[subgroup]>0.5) & (df['toxic']==True)] #df[df[subgroup] & df[label]]
+    non_subgroup_negative_examples = df[(df[subgroup]<=0.5) & ~(df['toxic']==True)] #df[~df[subgroup] & ~df[label]]
+    examples = pd.concat([subgroup_positive_examples,non_subgroup_negative_examples],axis=0)
+    return roc_auc_score(examples['toxic'], examples['pred']) # compute_auc(examples[label], examples[model_name])
 
-def createFeatures(X_train,glove):
-
-    #import gensim.downloader as api
-    # model = api.load("glove-twitter-200")
-    #glove = api.load(EMBEDDINGS)
-
-    ######  TF-IDF #####
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
-                                      ,lowercase=True
-                                      ,tokenizer=gensim.utils.simple_preprocess)
-    tfidf = tfidfVectorizer.fit_transform(X_train)
-    #####################
-
-    features = []
-    # Creating a representation for the whole tweet using Glove wordvec
-    for i,comment in enumerate(X_train):
-
-      words = gensim.utils.simple_preprocess(comment)
-      #words = stanfordPreprocessing.tokenize(word).split()
-      #Without TF_IDF
-      #features.append(buildVector(words,glove,size=300))
-
-      features.append(buildVectorTFIDF(words, glove, tfidfVectorizer, tfidf.getrow(i).toarray(), size=300))
-
-    #del glove
-    return features
-
-def buildVector(tokens, word2vec, size=150):
-
-    vec = np.zeros(size)
-    count = 0.
-    for word in tokens:
-        try:
-            vec += word2vec[word]
-            count += 1.
-        except KeyError: # handling the case where the token is not present
-            print("\nWord not found : " + word)
-            continue
-    if count != 0:
-        vec /= count
-
-    assert(len(vec) == size)
-    return vec
-
-def buildVectorTFIDF(tokens, word2vec, tfidfVectorizer, tfidf, size=150):
-    vec = np.zeros(size)
-    count = 0.
-    for word in tokens:
-        try:
-            vec += word2vec[word] * tfidf[0,tfidfVectorizer.vocabulary_[word]]
-            count += 1.
-        except KeyError: # handling the case where the token is not present
-            continue
-    if count != 0:
-        vec /= count
-
-    assert(len(vec) == size)
-    return vec
-
-
+def compute_bpsn_auc(df, subgroup):
+    """Computes the AUC of the within-subgroup negative examples and the background positive examples."""
+    # error here means False Positive for subgroup and False Negative for others
+    subgroup_negative_examples = df[(df[subgroup]>0.5) & ~(df['toxic'])]
+    non_subgroup_positive_examples = df[(df[subgroup]<=0.5) & (df['toxic'])]
+    examples = pd.concat([subgroup_negative_examples,non_subgroup_positive_examples],axis=0)
+    return roc_auc_score(examples['toxic'], examples['pred']) # compute_auc(examples[label], examples[model_name])
 
 def identityDetails(comment,target_group,word2vec):
 
@@ -138,36 +78,57 @@ def identityDetails(comment,target_group,word2vec):
 
 X_test = pd.read_csv('balanced_test.csv', sep = ',')
 Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',',usecols=['toxic'])
+pred = pickle.load(open('word2vec_prediction.save', 'rb'))
+X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
 
-loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-features = createFeatures(X_test['comment_text'],glove)
-pred = loaded_model.predict_proba(features)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
-print(loaded_model.score(features, Y_test))
+print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
 confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
 print(confusionMatrix)
 print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
-
+print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))
+print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + confusionMatrix[0][1]))))
 
 print('\n Analysis per group')
 
 for g in groups:
     test = X_test[X_test[g] > 0.5]
     test.reset_index(inplace=True)
-    features = createFeatures(test['comment_text'],glove)
-    y_test = X_test.loc[X_test[g] > 0.5,['toxic']]
-    pred = loaded_model.predict_proba(features)[:, 1]
+    pred = test['pred']
+    y_test = test['toxic']
+    # features = createFeatures(test['comment_text'],glove)
+    # y_test = X_test.loc[X_test[g] > 0.5,['toxic']]
+    # pred = loaded_model.predict_proba(features)[:, 1]
     auc = roc_auc_score(y_test, pred)
     print('\nTest ROC AUC for group %s: %.3f' %(g,auc))
-    print(loaded_model.score(features, y_test['toxic']))
+    print(sklearn.metrics.accuracy_score(y_test, pred>0.5))
     print(sklearn.metrics.confusion_matrix(y_test, pred>0.5))
     confusionMatrix = sklearn.metrics.confusion_matrix(y_test, pred > 0.5)
     print("Acceptance rate: %.3f" % (100 * ((confusionMatrix[0][0] + confusionMatrix[0][1]) / len(y_test))))
+    print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / ( confusionMatrix[0][0] + confusionMatrix[1][0]) )))
+    print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / ( confusionMatrix[1][1] + confusionMatrix[0][1]) )))
+    print("BNSP: %.3f" % compute_bnsp_auc(X_test,g))
+    print("BPSN: %.3f" % compute_bpsn_auc(X_test,g))
     print('List of false positives')
-    print(([ v['comment_text'] if (pred[i]>0.5 and v['toxic']==False) else '' for i,v in test.iterrows() ]))
+    # print(([ v['comment_text'] if (pred[i]>0.5 and v['toxic']==False) else '' for i,v in test.iterrows() ]))
+
+#EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
+EMBEDDINGS = 'glove-wiki-gigaword-300'
+
+import gensim.downloader as api
+glove = api.load(EMBEDDINGS)
+
+identity_detail = {
+
+    'name': str,
+    'comment_length': int,
+    'number_embeddings': int,
+    'mean_similarity': np.float32
+}
 
 
+loaded_model = pickle.load(open('logistic_model.save', 'rb'))
 
 groups = ['black','christian','female',
           'homosexual', 'gay', 'lesbian','jewish','male','muslim',
