@@ -171,10 +171,6 @@ print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + con
 
 
 
-
-
-
-
 # result = cross_validate(LogisticRegression(penalty='l2'),X=features,y=sentiment,cv=5,scoring=['accuracy','f1'], return_train_score=False)
 #
 # from prettytable import PrettyTable
