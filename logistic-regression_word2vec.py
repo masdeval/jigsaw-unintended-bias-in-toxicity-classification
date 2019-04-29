@@ -45,7 +45,7 @@ def buildVector(tokens, word2vec, size=150):
             vec += word2vec[word]
             count += 1.
         except KeyError: # handling the case where the token is not present
-            print("\nWord not found : " + word)
+            #print("\nWord not found : " + word)
             continue
     if count != 0:
         vec /= count

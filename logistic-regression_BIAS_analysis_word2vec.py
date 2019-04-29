@@ -63,6 +63,25 @@ def identityDetails(comment,target_group,word2vec):
     identity_detail['mean_similarity'] = np.array(similarities).mean()
     return  identity_detail
 
+def calculate_overall_auc(df):
+    true_labels = df['toxic']
+    predicted_labels = df['pred']
+    return sklearn.metrics.roc_auc_score(true_labels, predicted_labels)
+
+
+def power_mean(series, p):
+    total = sum(np.power(series, p))
+    return np.power(total / len(series), 1 / p)
+
+
+def get_final_metric(bias_df, overall_auc, POWER=-5, OVERALL_MODEL_WEIGHT=0.25):
+    bias_score = np.average([
+        power_mean(bias_df['subgroup_auc'], POWER),
+        power_mean(bias_df['bpsn_auc'], POWER),
+        power_mean(bias_df['bnsp_auc'], POWER)
+    ])
+    return (OVERALL_MODEL_WEIGHT * overall_auc) + ((1 - OVERALL_MODEL_WEIGHT) * bias_score)
+
 
 # embeddings = api.load(EMBEDDINGS)
 # toxic_frame = wiki_data[(wiki_data['toxic']==False) & (wiki_data['black'] > 0.5)]
@@ -92,15 +111,21 @@ print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + con
 
 print('\n Analysis per group')
 
+records = []
+
 for g in groups:
+    record = {}
+    record['subgroup'] = g
     test = X_test[X_test[g] > 0.5]
     test.reset_index(inplace=True)
+    record['subgroup_size'] = len(test.index)
     pred = test['pred']
     y_test = test['toxic']
     # features = createFeatures(test['comment_text'],glove)
     # y_test = X_test.loc[X_test[g] > 0.5,['toxic']]
     # pred = loaded_model.predict_proba(features)[:, 1]
-    auc = roc_auc_score(y_test, pred)
+    auc = roc_auc_score(test['toxic'], pred)
+    record['subgroup_auc'] = auc
     print('\nTest ROC AUC for group %s: %.3f' %(g,auc))
     print(sklearn.metrics.accuracy_score(y_test, pred>0.5))
     print(sklearn.metrics.confusion_matrix(y_test, pred>0.5))
@@ -108,10 +133,22 @@ for g in groups:
     print("Acceptance rate: %.3f" % (100 * ((confusionMatrix[0][0] + confusionMatrix[0][1]) / len(y_test))))
     print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / ( confusionMatrix[0][0] + confusionMatrix[1][0]) )))
     print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / ( confusionMatrix[1][1] + confusionMatrix[0][1]) )))
-    print("BNSP: %.3f" % compute_bnsp_auc(X_test,g))
-    print("BPSN: %.3f" % compute_bpsn_auc(X_test,g))
+    FNR = (100 * (confusionMatrix[1][0] / (confusionMatrix[1][0] + confusionMatrix[0][0])))
+    BNSP = compute_bnsp_auc(X_test,g)
+    print("BNSP: %.3f - FNR: %.3f" % (BNSP,FNR))
+    record['bnsp_auc' ] = BNSP
+    FPR = (100 * (confusionMatrix[0][1] / ( confusionMatrix[0][1] + confusionMatrix[1][1]) ))
+    BPSN = compute_bpsn_auc(X_test,g)
+    print("BPSN: %.3f - FPR: %.3f" % (BPSN,FPR))
+    record['bpsn_auc'] = BPSN
     print('List of false positives')
-    # print(([ v['comment_text'] if (pred[i]>0.5 and v['toxic']==False) else '' for i,v in test.iterrows() ]))
+    #print(([ v['comment_text'] if (pred[i]>0.5 and v['toxic']==False) else '' for i,v in test.iterrows() ]))
+    records.append(record)
+
+bias_metrics_df = pd.DataFrame(records).sort_values('subgroup_auc', ascending=True)
+#print(bias_metrics_df)
+print("\n Model accuracy: %.3f" % get_final_metric(bias_metrics_df, calculate_overall_auc(X_test)))
+
 
 #EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
 EMBEDDINGS = 'glove-wiki-gigaword-300'

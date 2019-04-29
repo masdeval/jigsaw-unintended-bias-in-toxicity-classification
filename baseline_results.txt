@@ -16,8 +16,8 @@ Test ROC AUC for group black: 0.868
 Acceptance rate: 77.249
 TPR: 85.730
 TNR: 73.597
-BNSP: 0.931
-BPSN: 0.806
+BNSP: 0.931 - FNR: 14.270
+BPSN: 0.806 - FPR: 26.403
 List of false positives
 
 Test ROC AUC for group christian: 0.910
@@ -27,8 +27,8 @@ Test ROC AUC for group christian: 0.910
 Acceptance rate: 92.534
 TPR: 95.048
 TNR: 70.068
-BNSP: 0.846
-BPSN: 0.934
+BNSP: 0.847 - FNR: 4.952
+BPSN: 0.933 - FPR: 29.932
 List of false positives
 
 Test ROC AUC for group female: 0.911
@@ -38,8 +38,8 @@ Test ROC AUC for group female: 0.911
 Acceptance rate: 90.151
 TPR: 94.082
 TNR: 76.679
-BNSP: 0.877
-BPSN: 0.909
+BNSP: 0.877 - FNR: 5.918
+BPSN: 0.909 - FPR: 23.321
 List of false positives
 
 Test ROC AUC for group homosexual_gay_or_lesbian: 0.865
@@ -49,8 +49,8 @@ Test ROC AUC for group homosexual_gay_or_lesbian: 0.865
 Acceptance rate: 78.606
 TPR: 86.294
 TNR: 72.103
-BNSP: 0.914
-BPSN: 0.832
+BNSP: 0.913 - FNR: 13.706
+BPSN: 0.832 - FPR: 27.897
 List of false positives
 
 Test ROC AUC for group jewish: 0.904
@@ -60,8 +60,8 @@ Test ROC AUC for group jewish: 0.904
 Acceptance rate: 87.913
 TPR: 93.174
 TNR: 74.754
-BNSP: 0.895
-BPSN: 0.897
+BNSP: 0.895 - FNR: 6.826
+BPSN: 0.897 - FPR: 25.246
 List of false positives
 
 Test ROC AUC for group male: 0.911
@@ -71,8 +71,8 @@ Test ROC AUC for group male: 0.911
 Acceptance rate: 88.984
 TPR: 93.281
 TNR: 76.534
-BNSP: 0.896
-BPSN: 0.893
+BNSP: 0.896 - FNR: 6.719
+BPSN: 0.893 - FPR: 23.466
 List of false positives
 
 Test ROC AUC for group muslim: 0.876
@@ -82,8 +82,8 @@ Test ROC AUC for group muslim: 0.876
 Acceptance rate: 84.005
 TPR: 89.987
 TNR: 71.786
-BNSP: 0.909
-BPSN: 0.851
+BNSP: 0.909 - FNR: 10.013
+BPSN: 0.851 - FPR: 28.214
 List of false positives
 
 Test ROC AUC for group psychiatric_or_mental_illness: 0.890
@@ -93,8 +93,8 @@ Test ROC AUC for group psychiatric_or_mental_illness: 0.890
 Acceptance rate: 82.853
 TPR: 87.437
 TNR: 75.926
-BNSP: 0.893
-BPSN: 0.885
+BNSP: 0.893 - FNR: 12.563
+BPSN: 0.885 - FPR: 24.074
 List of false positives
 
 Test ROC AUC for group white: 0.870
@@ -104,9 +104,11 @@ Test ROC AUC for group white: 0.870
 Acceptance rate: 79.828
 TPR: 87.599
 TNR: 73.394
-BNSP: 0.931
-BPSN: 0.806
+BNSP: 0.931 - FNR: 12.401
+BPSN: 0.805 - FPR: 26.606
 List of false positives
+
+ Model accuracy: 0.884
 
 Using the jigsaw debias dataset
 
