@@ -65,6 +65,8 @@ X_test = pd.read_csv('balanced_test.csv', sep = ',')
 Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',',usecols=['toxic'])
 pred = pickle.load(open('baseline_predictions.save', 'rb'))
 X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
+X_test = pd.concat([X_test,Y_test],axis=1)
+
 
 auc = roc_auc_score(Y_test, pred)
 print('Overall Test ROC AUC: %.3f' %auc)

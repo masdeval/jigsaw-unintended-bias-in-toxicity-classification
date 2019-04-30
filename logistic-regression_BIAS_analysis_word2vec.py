@@ -83,22 +83,13 @@ def get_final_metric(bias_df, overall_auc, POWER=-5, OVERALL_MODEL_WEIGHT=0.25):
     return (OVERALL_MODEL_WEIGHT * overall_auc) + ((1 - OVERALL_MODEL_WEIGHT) * bias_score)
 
 
-# embeddings = api.load(EMBEDDINGS)
-# toxic_frame = wiki_data[(wiki_data['toxic']==False) & (wiki_data['black'] > 0.5)]
-# for index, sample in toxic_frame.iterrows():
-#   #for g in groups:
-#       #if sample.loc['black'] > 0.5:
-#           print('\n'+str(identityDetails(sample.loc['comment_text'],'black',embeddings)))
-# del embeddings
-# gc.collect()
-
-
 # Now starts the evaluation of the model regarding bias
 
 X_test = pd.read_csv('balanced_test.csv', sep = ',')
 Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',',usecols=['toxic'])
 pred = pickle.load(open('word2vec_prediction.save', 'rb'))
 X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
+X_test = pd.concat([X_test,Y_test],axis=1)
 
 auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
@@ -151,21 +142,12 @@ print("\n Model accuracy: %.3f" % get_final_metric(bias_metrics_df, calculate_ov
 
 
 #EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
-EMBEDDINGS = 'glove-wiki-gigaword-300'
+EMBEDDINGS = 'glove-wiki-gigaword-200'
 
 import gensim.downloader as api
 glove = api.load(EMBEDDINGS)
 
-identity_detail = {
-
-    'name': str,
-    'comment_length': int,
-    'number_embeddings': int,
-    'mean_similarity': np.float32
-}
-
-
-loaded_model = pickle.load(open('logistic_model.save', 'rb'))
+loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
 
 groups = ['black','christian','female',
           'homosexual', 'gay', 'lesbian','jewish','male','muslim',
@@ -177,6 +159,22 @@ for w in groups:
 
 
 
+# identity_detail = {
+#
+#     'name': str,
+#     'comment_length': int,
+#     'number_embeddings': int,
+#     'mean_similarity': np.float32
+# }
+
+# embeddings = api.load(EMBEDDINGS)
+# toxic_frame = wiki_data[(wiki_data['toxic']==False) & (wiki_data['black'] > 0.5)]
+# for index, sample in toxic_frame.iterrows():
+#   #for g in groups:
+#       #if sample.loc['black'] > 0.5:
+#           print('\n'+str(identityDetails(sample.loc['comment_text'],'black',embeddings)))
+# del embeddings
+# gc.collect()
 
 
 
