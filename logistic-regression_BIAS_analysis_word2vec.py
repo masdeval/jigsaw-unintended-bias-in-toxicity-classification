@@ -82,6 +82,12 @@ def get_final_metric(bias_df, overall_auc, POWER=-5, OVERALL_MODEL_WEIGHT=0.25):
     ])
     return (OVERALL_MODEL_WEIGHT * overall_auc) + ((1 - OVERALL_MODEL_WEIGHT) * bias_score)
 
+def transformConfusionMatrix(matrix):
+    TN = matrix[0][0]
+    TP = matrix[1][1]
+    matrix[0][0] = TP
+    matrix[1][1] = TN
+    return matrix
 
 # Now starts the evaluation of the model regarding bias
 
@@ -95,6 +101,7 @@ auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
 print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
 confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
+confusionMatrix = transformConfusionMatrix(confusionMatrix)
 print(confusionMatrix)
 print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
 print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))
@@ -119,8 +126,9 @@ for g in groups:
     record['subgroup_auc'] = auc
     print('\nTest ROC AUC for group %s: %.3f' %(g,auc))
     print(sklearn.metrics.accuracy_score(y_test, pred>0.5))
-    print(sklearn.metrics.confusion_matrix(y_test, pred>0.5))
     confusionMatrix = sklearn.metrics.confusion_matrix(y_test, pred > 0.5)
+    confusionMatrix = transformConfusionMatrix(confusionMatrix)
+    print(confusionMatrix)
     print("Acceptance rate: %.3f" % (100 * ((confusionMatrix[0][0] + confusionMatrix[0][1]) / len(y_test))))
     print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / ( confusionMatrix[0][0] + confusionMatrix[1][0]) )))
     print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / ( confusionMatrix[1][1] + confusionMatrix[0][1]) )))
@@ -153,10 +161,26 @@ groups = ['black','christian','female',
           'homosexual', 'gay', 'lesbian','jewish','male','muslim',
           'white']
 
+words_pleasent = ['caress', 'freedom', 'health', 'love', 'peace', 'cheer', 'friend', 'heaven', 'loyal', 'pleasure',
+                  'diamond', 'gentle', 'honest', 'lucky', 'rainbow', 'diploma', 'gift', 'honor', 'miracle',
+                  'sunrise', 'family', 'happy', 'laughter', 'paradise', 'vacation', 'positive', 'good']
+
+words_unpleasent = ['abuse', 'crash', 'filth', 'murder', 'sickness', 'accident', 'death', 'grief', 'poison', 'stink',
+                    'assault', 'disaster', 'hatred', 'pollute', 'tragedy', 'bomb', 'divorce', 'jail', 'poverty', 'ugly',
+                    'cancer', 'evil', 'kill', 'rotten', 'vomit', 'negative', 'bad', 'sad']
+
+
+
 for w in groups:
   print('\n' + w + ' : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
 
+print('\nPleasent words\n')
+for w in words_pleasent:
+  print('\n' + w + ' toxicity : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
 
+print('\nUnpleasent words\n')
+for w in words_unpleasent:
+  print('\n' + w + ' toxicity : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
 
 
 # identity_detail = {

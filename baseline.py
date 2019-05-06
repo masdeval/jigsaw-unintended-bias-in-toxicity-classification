@@ -14,6 +14,7 @@ import os
 import pickle
 import gc
 import scipy
+import random
 
 file_path ="train.csv"
 
@@ -21,10 +22,7 @@ groups = ['black','christian','female',
           'homosexual_gay_or_lesbian','jewish','male','muslim',
           'psychiatric_or_mental_illness','white']
 
-def firstExecution(epochs):
-
-
- def create_balanced_train_test(wiki_data):
+def create_balanced_train_test(wiki_data):
         # Creating a balanced Test/Train for different identities
         X_train = X_test = Y_train = Y_test = None
         train = test = set()
@@ -32,7 +30,7 @@ def firstExecution(epochs):
             X_train_aux, X_test_aux, Y_train_aux, Y_test_aux = train_test_split(
                 wiki_data.loc[wiki_data[x] > 0.5, ['id', 'target', 'comment_text'] + groups],
                 wiki_data.loc[wiki_data[x] > 0.5, ['toxic']],
-                test_size=0.3, random_state=666)
+                test_size=0.3, random_state=666, stratify = wiki_data.loc[wiki_data[x] > 0.5, ['toxic']])
             train = train.union(set(X_train_aux.index))
             test = test.union(set(X_test_aux.index))
             # X_train = pd.concat([X_train, X_train_aux])
@@ -45,12 +43,19 @@ def firstExecution(epochs):
         # for x in groups:
         #     index = wiki_data[wiki_data[x] <= 0.5].index
         #     rows = rows.union(set(index))
-        index = wiki_data[~wiki_data.index.isin(list(train.union(test)))].index
+
+        # get the rest of examples that do not match a specific group
+        index = wiki_data[~wiki_data.index.isin(train.union(test))].index
+        #too many general non toxic examples. keep fewer of them
+        data_aux = wiki_data.iloc[index]
+        data_aux_non_toxic = data_aux.loc[data_aux['toxic'] == False].index
+        data_aux_non_toxic = np.random.choice(data_aux_non_toxic, int(0.6*len(data_aux_non_toxic)), replace=False)
+        index = list(data_aux_non_toxic) + list(data_aux.loc[data_aux['toxic'] == True].index)
 
         X_train_aux, X_test_aux, Y_train_aux, Y_test_aux = train_test_split(
             wiki_data.loc[index, ['id', 'target', 'comment_text'] + groups],
             wiki_data.loc[index, ['toxic']],
-            test_size=0.3, random_state=666)
+            test_size=0.3, random_state=666, stratify = wiki_data.loc[index, ['toxic']])
         train = train.union(set(X_train_aux.index))
         test = test.union(set(X_test_aux.index))
         # X_train = pd.concat([X_train, X_train_aux])
@@ -78,29 +83,9 @@ def firstExecution(epochs):
         return X_train, X_test, Y_train, Y_test
 
 
- if os.path.isfile('balanced_train.csv'):
-     X_train = pd.read_csv('balanced_train.csv', sep = ',', usecols=['comment_text','target'])
-     X_test = pd.read_csv('balanced_test.csv', sep = ',', usecols=['comment_text','target'])
-     Y_train = pd.read_csv('balanced_train_Y.csv', sep = ',', usecols=['toxic'])
-     Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',', usecols=['toxic'])
- else:
-     # wiki_data = pd.read_csv(file_path, sep = ',', usecols=['target','comment_text'])
-     wiki_data = pd.read_csv(file_path, sep=',')
-     wiki_data['toxic'] = wiki_data['target'] > 0.5
-     X_train , X_test , Y_train , Y_test = create_balanced_train_test(wiki_data)
-     del wiki_data
-     gc.collect()
+# save the test set to be able to test the model later
 
- # tokens = CountVectorizer(max_features = 10000, lowercase=True, binary=False, ngram_range=(1,2))
- tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True)
- features_train = tokens.fit_transform(X_train['comment_text'])
- features_test = tokens.transform(X_test['comment_text'])
- # save the vocabulary
- pickle.dump(tokens.vocabulary_, open('vocabulary.save', 'wb'))
-
- # save the test set to be able to test the model later
-
- def trainModel(X_train , Y_train):
+def trainModel(X_train , Y_train):
     model = None
     try:
       model = pickle.load(open('logistic_model.save', 'rb'))
@@ -121,33 +106,66 @@ def firstExecution(epochs):
 
     return model
 
- for i in range(epochs):
-     model = trainModel(features_train , Y_train)
+def augumentToxicityOfTrainData(toxicData, X_train, Y_train):
+    toxicData = toxicData.query('is_toxic')
+    toxicData.rename(columns={"comment":'comment_text',"is_toxic":'toxic'},inplace=True)
+    toxicData_comment = toxicData.loc[:,'comment_text']
+    toxicData_toxic = toxicData.loc[:,'toxic']
+    X_train = pd.concat([X_train,toxicData_comment],axis=0,ignore_index=True)
+    Y_train = pd.concat([Y_train,toxicData_toxic],axis=0,ignore_index=True)
 
- ## **** Train over false positive/false negative - seems do not work well
- # features_index = list(range(len(X_train.index)))
- # for i in range(epochs):
- #     model = trainModel(features_train[features_index,:] , Y_train.iloc[features_index,:])
- #     pred = model.predict(features_train[features_index,:])
- #     confusionMatrix = sklearn.metrics.confusion_matrix(Y_train.iloc[features_index,:], pred)
- #     if confusionMatrix[0][1] == 0 & confusionMatrix[1][0] == 0:
- #         break
- #     false_positives = list()
- #     false_negatives = list()
- #     i = 0
- #     for index, v in X_train.iloc[features_index,:].iterrows():
- #        if (pred[i] == True and v['target'] <= 0.5):
- #            false_positives.append(i)
- #        if (pred[i] == False and v['target'] > 0.5):
- #            false_negatives.append(index)
- #        i += 1
- #     features_index = (false_positives+false_negatives)
+    return X_train,Y_train
 
- pred = model.predict_proba(features_test)[:, 1]
- auc = roc_auc_score(Y_test, pred)
- print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.888
- pickle.dump(pred, open('baseline_predictions.save', 'wb'))
+def firstExecution(epochs):
 
+    if os.path.isfile('balanced_train.csv'):
+        X_train = pd.read_csv('balanced_train.csv', sep=',', usecols=['comment_text'])
+        X_test = pd.read_csv('balanced_test.csv', sep=',', usecols=['comment_text'])
+        Y_train = pd.read_csv('balanced_train_Y.csv', sep=',', usecols=['toxic'])
+        Y_test = pd.read_csv('balanced_test_Y.csv', sep=',', usecols=['toxic'])
+    else:
+        wiki_data = pd.read_csv(file_path, sep=',')
+        wiki_data['toxic'] = wiki_data['target'] > 0.5
+        X_train, X_test, Y_train, Y_test = create_balanced_train_test(wiki_data)
+        del wiki_data
+        gc.collect()
+
+    #aux_train = pd.read_csv('../unintended-ml-bias-analysis-master/data/wiki_train.csv', sep=',', usecols=['comment', 'is_toxic'])
+    #X_train, Y_train = augumentToxicityOfTrainData(aux_train,X_train,Y_train)
+
+    # tokens = CountVectorizer(max_features = 10000, lowercase=True, binary=False, ngram_range=(1,2))
+    tokens = CountVectorizer(max_features=10000, lowercase=True, binary=True)
+    features_train = tokens.fit_transform(X_train['comment_text'])
+    features_test = tokens.transform(X_test['comment_text'])
+    # save the vocabulary
+    pickle.dump(tokens.vocabulary_, open('vocabulary.save', 'wb'))
+
+    for i in range(epochs):
+        model = trainModel(features_train, Y_train)
+
+
+    ## **** Train over false positive/false negative - seems do not work well
+    # features_index = list(range(len(X_train.index)))
+    # for i in range(epochs):
+    #     model = trainModel(features_train[features_index,:] , Y_train.iloc[features_index,:])
+    #     pred = model.predict(features_train[features_index,:])
+    #     confusionMatrix = sklearn.metrics.confusion_matrix(Y_train.iloc[features_index,:], pred)
+    #     if confusionMatrix[0][1] == 0 & confusionMatrix[1][0] == 0:
+    #         break
+    #     false_positives = list()
+    #     false_negatives = list()
+    #     i = 0
+    #     for index, v in X_train.iloc[features_index,:].iterrows():
+    #        if (pred[i] == True and v['target'] <= 0.5):
+    #            false_positives.append(i)
+    #        if (pred[i] == False and v['target'] > 0.5):
+    #            false_negatives.append(index)
+    #        i += 1
+    #     features_index = (false_positives+false_negatives)
+    pred = model.predict_proba(features_test)[:, 1]
+    auc = roc_auc_score(Y_test, pred)
+    print('Test ROC AUC: %.3f' %auc) #Test ROC AUC: 0.888
+    pickle.dump(pred, open('baseline_predictions.save', 'wb'))
 
 # Inside this function are all the steps to train a simple bow classifier to predict toxicity.
 # Also, it creates balanced train/test sets taking into account the identities, specified here by the variable groups
@@ -164,7 +182,21 @@ pred = pickle.load(open('baseline_predictions.save', 'rb'))
 auc = roc_auc_score(Y_test, pred)
 print('Overall Test ROC AUC: %.3f' %auc)
 print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
-confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
+
+# The matrix returned by sklearn.metrics.confusion_matrix is in the form:
+#    TN  FP
+#    FN  TP
+# This function changes it to the format:
+#    TP  FP
+#    FN  TN
+def transformConfusionMatrix(matrix):
+    TN = matrix[0][0]
+    TP = matrix[1][1]
+    matrix[0][0] = TP
+    matrix[1][1] = TN
+    return matrix
+
+confusionMatrix = transformConfusionMatrix(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
 print(confusionMatrix)
 print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
 print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))

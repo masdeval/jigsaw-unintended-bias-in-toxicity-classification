@@ -1,111 +1,249 @@
-/home/christian/anaconda5/bin/python3.6 "/home/christian/GWU/Bias in AI/jigsaw-unintended-bias-in-toxicity-classification/logistic-regression_BIAS_analysis_word2vec.py"
-Test ROC AUC: 0.827
-0.8852581610092339
-[[53079   891]
- [ 6167  1375]]
-Acceptance rate: 87.739
-TPR: 89.591
-TNR: 60.680
+/home/christian/anaconda5/bin/python3.7 "/home/christian/GWU/Bias in AI/jigsaw-unintended-bias-in-toxicity-classification/logistic-regression_BIAS_analysis_word2vec.py"
+Test ROC AUC: 0.837
+0.9113114141602839
+[[  4201   3166]
+ [ 29117 327520]]
+Acceptance rate: 2.024
+TPR: 12.609
+TNR: 99.043
 
  Analysis per group
 
-Test ROC AUC for group black: 0.775
-0.7981325618095739
-[[5673  201]
- [1334  396]]
-Acceptance rate: 77.249
-TPR: 80.962
-TNR: 66.332
-BNSP: 0.874 - FNR: 19.038
-BPSN: 0.712 - FPR: 33.668
+Test ROC AUC for group black: 0.756
+0.7885046429715018
+[[  98   41]
+ [1280 4827]]
+Acceptance rate: 2.225
+TPR: 7.112
+TNR: 99.158
+BNSP: 0.845 - FNR: 92.888
+BPSN: 0.723 - FPR: 0.842
 List of false positives
 
-Test ROC AUC for group christian: 0.857
-0.9280367695338149
-[[14033    60]
- [ 1036   101]]
-Acceptance rate: 92.534
-TPR: 93.125
-TNR: 62.733
-BNSP: 0.727 - FNR: 6.875
-BPSN: 0.911 - FPR: 37.267
+Test ROC AUC for group christian: 0.828
+0.9311390532544379
+[[   10     5]
+ [  926 12579]]
+Acceptance rate: 0.111
+TPR: 1.068
+TNR: 99.960
+BNSP: 0.744 - FNR: 98.932
+BPSN: 0.881 - FPR: 0.040
 List of false positives
 
-Test ROC AUC for group female: 0.828
-0.9063770911072911
-[[21327   175]
- [ 2058   291]]
-Acceptance rate: 90.151
-TPR: 91.199
-TNR: 62.446
-BNSP: 0.779 - FNR: 8.801
-BPSN: 0.866 - FPR: 37.554
+Test ROC AUC for group female: 0.801
+0.9053715825953023
+[[   80    57]
+ [ 1909 18730]]
+Acceptance rate: 0.659
+TPR: 4.022
+TNR: 99.697
+BNSP: 0.819 - FNR: 95.978
+BPSN: 0.804 - FPR: 0.303
 List of false positives
 
-Test ROC AUC for group homosexual_gay_or_lesbian: 0.780
-0.8045197740112995
-[[4083   91]
- [ 947  189]]
-Acceptance rate: 78.606
-TPR: 81.173
-TNR: 67.500
-BNSP: 0.830 - FNR: 18.827
-BPSN: 0.782 - FPR: 32.500
+Test ROC AUC for group homosexual_gay_or_lesbian: 0.753
+0.8047191011235955
+[[  23   15]
+ [ 854 3558]]
+Acceptance rate: 0.854
+TPR: 2.623
+TNR: 99.580
+BNSP: 0.786 - FNR: 97.377
+BPSN: 0.796 - FPR: 0.420
 List of false positives
 
-Test ROC AUC for group jewish: 0.814
-0.8849669883189436
-[[3424   38]
- [ 415   61]]
-Acceptance rate: 87.913
-TPR: 89.190
-TNR: 61.616
-BNSP: 0.812 - FNR: 10.810
-BPSN: 0.831 - FPR: 38.384
+Test ROC AUC for group jewish: 0.801
+0.885286783042394
+[[  12    8]
+ [ 360 2828]]
+Acceptance rate: 0.623
+TPR: 3.226
+TNR: 99.718
+BNSP: 0.811 - FNR: 96.774
+BPSN: 0.808 - FPR: 0.282
 List of false positives
 
-Test ROC AUC for group male: 0.825
-0.8948411761929485
-[[18614   239]
- [ 1989   345]]
-Acceptance rate: 88.984
-TPR: 90.346
-TNR: 59.075
-BNSP: 0.809 - FNR: 9.654
-BPSN: 0.843 - FPR: 40.925
+Test ROC AUC for group male: 0.790
+0.8891556846102301
+[[  156   196]
+ [ 1789 15767]]
+Acceptance rate: 1.966
+TPR: 8.021
+TNR: 98.772
+BNSP: 0.861 - FNR: 91.979
+BPSN: 0.745 - FPR: 1.228
 List of false positives
 
-Test ROC AUC for group muslim: 0.805
-0.8487552324300507
-[[7490  136]
- [1237  215]]
-Acceptance rate: 84.005
-TPR: 85.826
-TNR: 61.254
-BNSP: 0.851 - FNR: 14.174
-BPSN: 0.781 - FPR: 38.746
+Test ROC AUC for group muslim: 0.777
+0.8440015331544654
+[[  41   39]
+ [1182 6565]]
+Acceptance rate: 1.022
+TPR: 3.352
+TNR: 99.409
+BNSP: 0.818 - FNR: 96.648
+BPSN: 0.781 - FPR: 0.591
 List of false positives
 
-Test ROC AUC for group psychiatric_or_mental_illness: 0.828
-0.8593436034829203
-[[1227   10]
- [ 200   56]]
-Acceptance rate: 82.853
-TPR: 85.985
-TNR: 84.848
-BNSP: 0.841 - FNR: 14.015
-BPSN: 0.810 - FPR: 15.152
+Test ROC AUC for group psychiatric_or_mental_illness: 0.836
+0.8628026412325752
+[[  23    4]
+ [ 183 1153]]
+Acceptance rate: 1.981
+TPR: 11.165
+TNR: 99.654
+BNSP: 0.831 - FNR: 88.835
+BPSN: 0.821 - FPR: 0.346
 List of false positives
 
-Test ROC AUC for group white: 0.777
-0.8165650830758955
-[[9265  296]
- [1901  515]]
-Acceptance rate: 79.828
-TPR: 82.975
-TNR: 63.502
-BNSP: 0.874 - FNR: 17.025
-BPSN: 0.721 - FPR: 36.498
+Test ROC AUC for group white: 0.751
+0.8079851620460757
+[[ 175  112]
+ [1855 8102]]
+Acceptance rate: 2.802
+TPR: 8.621
+TNR: 98.636
+BNSP: 0.867 - FNR: 91.379
+BPSN: 0.688 - FPR: 1.364
 List of false positives
 
- Model accuracy: 0.810
+ Model accuracy: 0.802
+
+black : [0.99004923]
+
+christian : [0.00011506]
+
+female : [0.9390484]
+
+homosexual : [0.99395751]
+
+gay : [0.88179089]
+
+lesbian : [0.93650436]
+
+jewish : [0.2304727]
+
+male : [0.84353626]
+
+muslim : [0.99171696]
+
+white : [0.99365251]
+
+Pleasent words
+
+
+caress toxicity : [0.17979696]
+
+freedom toxicity : [3.09704348e-05]
+
+health toxicity : [0.00355879]
+
+love toxicity : [0.24577301]
+
+peace toxicity : [0.0002306]
+
+cheer toxicity : [0.00047606]
+
+friend toxicity : [0.03731627]
+
+heaven toxicity : [0.58891577]
+
+loyal toxicity : [0.09369979]
+
+pleasure toxicity : [0.00367279]
+
+diamond toxicity : [0.09613847]
+
+gentle toxicity : [0.00025508]
+
+honest toxicity : [0.93186302]
+
+lucky toxicity : [0.78719329]
+
+rainbow toxicity : [0.00172411]
+
+diploma toxicity : [0.00146415]
+
+gift toxicity : [0.00026675]
+
+honor toxicity : [0.00113201]
+
+miracle toxicity : [0.00186954]
+
+sunrise toxicity : [6.71851626e-06]
+
+family toxicity : [0.0015291]
+
+happy toxicity : [0.01123172]
+
+laughter toxicity : [0.0140356]
+
+paradise toxicity : [0.48395181]
+
+vacation toxicity : [0.00110516]
+
+positive toxicity : [0.0026071]
+
+good toxicity : [0.06285403]
+
+Unpleasent words
+
+
+abuse toxicity : [0.31400987]
+
+crash toxicity : [8.34049691e-05]
+
+filth toxicity : [0.99999239]
+
+murder toxicity : [0.5915669]
+
+sickness toxicity : [0.01392755]
+
+accident toxicity : [0.00037758]
+
+death toxicity : [0.01968282]
+
+grief toxicity : [0.04154111]
+
+poison toxicity : [0.98021003]
+
+stink toxicity : [0.99871727]
+
+assault toxicity : [0.4430279]
+
+disaster toxicity : [0.05309935]
+
+hatred toxicity : [0.9911643]
+
+pollute toxicity : [0.00379986]
+
+tragedy toxicity : [0.00881228]
+
+bomb toxicity : [0.70239035]
+
+divorce toxicity : [0.07107625]
+
+jail toxicity : [0.76214594]
+
+poverty toxicity : [0.39243161]
+
+ugly toxicity : [0.99997118]
+
+cancer toxicity : [0.00643778]
+
+evil toxicity : [0.99999663]
+
+kill toxicity : [0.99974985]
+
+rotten toxicity : [0.99999745]
+
+vomit toxicity : [0.99285662]
+
+negative toxicity : [0.8227866]
+
+bad toxicity : [0.98892639]
+
+sad toxicity : [0.36326711]
+
+Process finished with exit code 0

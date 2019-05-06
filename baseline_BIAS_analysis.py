@@ -16,6 +16,12 @@ import pickle
 import gc
 import scipy
 
+def transformConfusionMatrix(matrix):
+    TN = matrix[0][0]
+    TP = matrix[1][1]
+    matrix[0][0] = TP
+    matrix[1][1] = TN
+    return matrix
 
 def compute_bnsp_auc(df, subgroup):
     """Computes the AUC of the within-subgroup positive examples and the background negative examples."""
@@ -72,6 +78,7 @@ auc = roc_auc_score(Y_test, pred)
 print('Overall Test ROC AUC: %.3f' %auc)
 print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
 confusionMatrix = sklearn.metrics.confusion_matrix(Y_test, pred>0.5)
+confusionMatrix = transformConfusionMatrix(confusionMatrix)
 print(confusionMatrix)
 print("Acceptance rate: %.3f" %(100*((confusionMatrix[0][0]+confusionMatrix[0][1])/len(Y_test))))
 print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + confusionMatrix[1][0]))))
@@ -96,8 +103,9 @@ for g in groups:
     record['subgroup_auc'] = auc
     print('\nTest ROC AUC for group %s: %.3f' %(g,auc))
     print(sklearn.metrics.accuracy_score(y_test, pred>0.5))
-    print(sklearn.metrics.confusion_matrix(y_test, pred>0.5))
     confusionMatrix = sklearn.metrics.confusion_matrix(y_test, pred > 0.5)
+    confusionMatrix= transformConfusionMatrix(confusionMatrix)
+    print(confusionMatrix)
     print("Acceptance rate: %.3f" % (100 * ((confusionMatrix[0][0] + confusionMatrix[0][1]) / len(y_test))))
     print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / ( confusionMatrix[0][0] + confusionMatrix[1][0]) )))
     print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / ( confusionMatrix[1][1] + confusionMatrix[0][1]) )))
@@ -141,7 +149,7 @@ pred = loaded_model.predict_proba(X_test)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Global Test ROC AUC: %.3f' %auc)
 print('Accuracy ' + str(loaded_model.score(X_test, Y_test)))
-print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+print(transformConfusionMatrix(sklearn.metrics.confusion_matrix(Y_test, pred>0.5)))
 
 print('\nUsing the fuzzy dataset \n')
 
@@ -173,7 +181,7 @@ pred = loaded_model.predict_proba(X_test)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
 print(loaded_model.score(X_test, Y_test))
-print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+print(transformConfusionMatrix(sklearn.metrics.confusion_matrix(Y_test, pred>0.5)))
 
 print('\n Now the non-fuzzed test set \n')
 debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/toxicity_nonfuzzed_testset.csv"
@@ -187,7 +195,7 @@ pred = loaded_model.predict_proba(X_test)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
 print(loaded_model.score(X_test, Y_test))
-print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+print(transformConfusionMatrix(sklearn.metrics.confusion_matrix(Y_test, pred>0.5)))
 
 print('\n Wiki Toxicity test set \n')
 debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/data/wiki_toxicity_test.csv"
@@ -201,6 +209,6 @@ pred = loaded_model.predict_proba(X_test)[:, 1]
 auc = roc_auc_score(Y_test, pred)
 print('Test ROC AUC: %.3f' %auc)
 print(loaded_model.score(X_test, Y_test))
-print(sklearn.metrics.confusion_matrix(Y_test, pred>0.5))
+print(transformConfusionMatrix(sklearn.metrics.confusion_matrix(Y_test, pred>0.5)))
 
 

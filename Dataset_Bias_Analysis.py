@@ -47,7 +47,7 @@ for term in groups:
   print('Proportion of toxic examples for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
   print('\n')
 
-# This is other way to compute it
+# This is other way to compute the above loop using pandas group_by
 # for each group, print the number of cases that are toxic and not toxic
 # for x in groups:
 #   aux = wiki_data[ wiki_data[x] > 0.5 ] # for each group, select only elements that belong to that group
@@ -74,17 +74,17 @@ def class_balance(frame, keyword, length=None):
     frame = filter_frame(frame, keyword, length)
     return len(frame.query('toxic')) / len(frame)
 
-# print('\n')
-# print('overall fraction of comments labeled toxic:', class_balance(wiki_data, keyword=None))
-# print('overall class balance {:.1f}%\t{} examples'.format(
-#     100 * class_balance(wiki_data, keyword=None), len(wiki_data)))
-#
-# for term in groups:
-#   if term == 'homosexual_gay_or_lesbian':
-#       term = ['homosexual','gay','lesbian']
-#   elif term == 'psychiatric_or_mental_illness':
-#       continue
-#   fraction =  class_balance(wiki_data, term)
-#   num = len(filter_frame(wiki_data, term))
-#   print('class balance for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
+print('\n')
+print('overall fraction of comments labeled toxic:', class_balance(wiki_data, keyword=None))
+print('overall class balance {:.1f}%\t{} examples'.format(
+    100 * class_balance(wiki_data, keyword=None), len(wiki_data)))
+
+for term in groups:
+  if term == 'homosexual_gay_or_lesbian':
+      term = ['homosexual','gay','lesbian']
+  elif term == 'psychiatric_or_mental_illness':
+      continue
+  fraction =  class_balance(wiki_data, term)
+  num = len(filter_frame(wiki_data, term))
+  print('class balance for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
 
