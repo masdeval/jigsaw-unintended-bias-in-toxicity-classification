@@ -1,0 +1,143 @@
+/home/christian/anaconda5/bin/python3.7 "/home/christian/GWU/Bias in AI/jigsaw-unintended-bias-in-toxicity-classification/baseline_BIAS_analysis.py"
+Overall Test ROC AUC: 0.887
+0.9234953462049867
+[[  7219   1749]
+ [ 26099 328937]]
+Acceptance rate: 2.464
+TPR: 21.667
+TNR: 99.471
+
+ Analysis per group
+
+Test ROC AUC for group black: 0.771
+0.7969900736471341
+[[ 328  218]
+ [1050 4650]]
+Acceptance rate: 8.742
+TPR: 23.803
+TNR: 95.522
+BNSP: 0.907 - FNR: 76.197
+BPSN: 0.697 - FPR: 4.478
+List of false positives
+
+Test ROC AUC for group christian: 0.858
+0.9334319526627219
+[[  137   101]
+ [  799 12483]]
+Acceptance rate: 1.760
+TPR: 14.637
+TNR: 99.197
+BNSP: 0.793 - FNR: 85.363
+BPSN: 0.906 - FPR: 0.803
+List of false positives
+
+Test ROC AUC for group female: 0.847
+0.9130246438197921
+[[  406   224]
+ [ 1583 18563]]
+Acceptance rate: 3.032
+TPR: 20.412
+TNR: 98.808
+BNSP: 0.842 - FNR: 79.588
+BPSN: 0.864 - FPR: 1.192
+List of false positives
+
+Test ROC AUC for group homosexual_gay_or_lesbian: 0.765
+0.8121348314606741
+[[ 146  105]
+ [ 731 3468]]
+Acceptance rate: 5.640
+TPR: 16.648
+TNR: 97.061
+BNSP: 0.865 - FNR: 83.352
+BPSN: 0.757 - FPR: 2.939
+List of false positives
+
+Test ROC AUC for group jewish: 0.819
+0.8918329177057357
+[[  72   47]
+ [ 300 2789]]
+Acceptance rate: 3.709
+TPR: 19.355
+TNR: 98.343
+BNSP: 0.815 - FNR: 80.645
+BPSN: 0.857 - FPR: 1.657
+List of false positives
+
+Test ROC AUC for group male: 0.843
+0.900268036631673
+[[  392   233]
+ [ 1553 15730]]
+Acceptance rate: 3.490
+TPR: 20.154
+TNR: 98.540
+BNSP: 0.872 - FNR: 79.846
+BPSN: 0.830 - FPR: 1.460
+List of false positives
+
+Test ROC AUC for group muslim: 0.794
+0.8540948000511052
+[[ 235  154]
+ [ 988 6450]]
+Acceptance rate: 4.970
+TPR: 19.215
+TNR: 97.668
+BNSP: 0.863 - FNR: 80.785
+BPSN: 0.796 - FPR: 2.332
+List of false positives
+
+Test ROC AUC for group psychiatric_or_mental_illness: 0.853
+0.8657373440939105
+[[  34   11]
+ [ 172 1146]]
+Acceptance rate: 3.302
+TPR: 16.505
+TNR: 99.049
+BNSP: 0.865 - FNR: 83.495
+BPSN: 0.849 - FPR: 0.951
+List of false positives
+
+Test ROC AUC for group white: 0.782
+0.8193088637251074
+[[ 475  296]
+ [1555 7918]]
+Acceptance rate: 7.526
+TPR: 23.399
+TNR: 96.396
+BNSP: 0.921 - FNR: 76.601
+BPSN: 0.688 - FPR: 3.604
+List of false positives
+
+ Model accuracy: 0.834
+
+Using the jigsaw debias dataset
+
+Global Test ROC AUC: 0.808
+Accuracy 0.5322605924455358
+[[ 2470     0]
+ [35812 38282]]
+
+Using the fuzzy dataset
+
+First the fuzzed
+
+Test ROC AUC: 0.889
+0.8505361930294906
+[[  35   10]
+ [ 213 1234]]
+
+ Now the non-fuzzed test set
+
+Test ROC AUC: 0.920
+0.8585790884718498
+[[  44    7]
+ [ 204 1237]]
+
+ Wiki Toxicity test set
+
+Test ROC AUC: 0.899
+0.9161488734073935
+[[  467    91]
+ [ 2581 28727]]
+
+Process finished with exit code 0

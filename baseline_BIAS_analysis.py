@@ -128,6 +128,7 @@ print("\n Model accuracy: %.3f" % get_final_metric(bias_metrics_df, calculate_ov
 
 loaded_model = pickle.load(open('logistic_model.save', 'rb'))
 
+
 print('\nUsing the jigsaw debias dataset \n')
 
 # This dataset is one tool in evaluating our de-biasing efforts. For a given template, a large difference in
@@ -138,7 +139,7 @@ print('\nUsing the jigsaw debias dataset \n')
 # eval_datasets/bias_madlibs_89k.csv, a CSV consisting of 2 columns. The generated text is in Text, and
 # the label is Label, either BAD or NOT_BAD.
 
-debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/bias_madlibs_77k.csv"
+debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/bias_madlibs_89k.csv"
 debias_test = pd.read_csv(debias_path)
 debias_test['Label'] = debias_test['Label'].apply(lambda x: 1 if x == 'BAD' else 0)
 vocabulary = pickle.load(open('vocabulary.save', 'rb'))

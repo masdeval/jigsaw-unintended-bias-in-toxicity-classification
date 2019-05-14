@@ -1,0 +1,141 @@
+
+Results for embeddings with no debias
+
+/home/christian/anaconda5/bin/python3.7 "/home/christian/GWU/Bias in AI/jigsaw-unintended-bias-in-toxicity-classification/logistic-regression_BIAS_analysis_word2vec.py"
+Test ROC AUC: 0.837
+0.911283941934704
+[[  4264   3239]
+ [ 29054 327447]]
+Acceptance rate: 2.061
+TPR: 12.798
+TNR: 99.021
+
+ Analysis per group
+
+Test ROC AUC for group black: 0.756
+0.7886647454370798
+[[ 100   42]
+ [1278 4826]]
+Acceptance rate: 2.273
+TPR: 7.257
+TNR: 99.137
+BNSP: 0.846 - FNR: 92.743
+BPSN: 0.721 - FPR: 0.863
+List of false positives
+
+Test ROC AUC for group christian: 0.827
+0.9312869822485207
+[[   12     5]
+ [  924 12579]]
+Acceptance rate: 0.126
+TPR: 1.282
+TNR: 99.960
+BNSP: 0.751 - FNR: 98.718
+BPSN: 0.875 - FPR: 0.040
+List of false positives
+
+Test ROC AUC for group female: 0.801
+0.9054197150558336
+[[   86    62]
+ [ 1903 18725]]
+Acceptance rate: 0.712
+TPR: 4.324
+TNR: 99.670
+BNSP: 0.820 - FNR: 95.676
+BPSN: 0.802 - FPR: 0.330
+List of false positives
+
+Test ROC AUC for group homosexual_gay_or_lesbian: 0.754
+0.8044943820224719
+[[  24   17]
+ [ 853 3556]]
+Acceptance rate: 0.921
+TPR: 2.737
+TNR: 99.524
+BNSP: 0.794 - FNR: 97.263
+BPSN: 0.788 - FPR: 0.476
+List of false positives
+
+Test ROC AUC for group jewish: 0.800
+0.8849750623441397
+[[  13   10]
+ [ 359 2826]]
+Acceptance rate: 0.717
+TPR: 3.495
+TNR: 99.647
+BNSP: 0.812 - FNR: 96.505
+BPSN: 0.806 - FPR: 0.353
+List of false positives
+
+Test ROC AUC for group male: 0.790
+0.8893232075050257
+[[  164   201]
+ [ 1781 15762]]
+Acceptance rate: 2.038
+TPR: 8.432
+TNR: 98.741
+BNSP: 0.863 - FNR: 91.568
+BPSN: 0.742 - FPR: 1.259
+List of false positives
+
+Test ROC AUC for group muslim: 0.778
+0.843873770282356
+[[  41   40]
+ [1182 6564]]
+Acceptance rate: 1.035
+TPR: 3.352
+TNR: 99.394
+BNSP: 0.816 - FNR: 96.648
+BPSN: 0.784 - FPR: 0.606
+List of false positives
+
+Test ROC AUC for group psychiatric_or_mental_illness: 0.835
+0.863536316947909
+[[  24    4]
+ [ 182 1153]]
+Acceptance rate: 2.054
+TPR: 11.650
+TNR: 99.654
+BNSP: 0.832 - FNR: 88.350
+BPSN: 0.819 - FPR: 0.346
+List of false positives
+
+Test ROC AUC for group white: 0.751
+0.8080827801639985
+[[ 177  113]
+ [1853 8101]]
+Acceptance rate: 2.831
+TPR: 8.719
+TNR: 98.624
+BNSP: 0.866 - FNR: 91.281
+BPSN: 0.690 - FPR: 1.376
+List of false positives
+
+ Model accuracy: 0.802
+
+black : [0.99316203]
+
+christian : [0.00015731]
+
+female : [0.94835828]
+
+homosexual : [0.99682179]
+
+gay : [0.93640616]
+
+lesbian : [0.95422823]
+
+jewish : [0.26525418]
+
+male : [0.89113592]
+
+muslim : [0.99218978]
+
+white : [0.99376659]
+
+Using the jigsaw debias dataset
+
+madlib 89k ROC AUC: 0.893
+madlib 77k ROC AUC: 0.907
+
+Process finished with exit code 0

@@ -45,6 +45,8 @@ for term in groups:
   num = len(frame)
   print('Proportion of identity {:s} in train: {:.3f}%'.format(term,100*(len(frame)/len(wiki_data.index))))
   print('Proportion of toxic examples for {:10s} {:.1f}%\t{} examples'.format(str(term), 100 * fraction, num))
+  print('Overall proportion of toxic examples for {:10s} {:.1f}%\t'.format(str(term), 100 * (len(frame.query('toxic'))/len(wiki_data))))
+
   print('\n')
 
 # This is other way to compute the above loop using pandas group_by
