@@ -21,6 +21,10 @@ import pickle
 import gensim.downloader as api
 import random
 from sklearn.externals import joblib
+from collections import defaultdict
+import dill
+import copy
+import json
 
 #EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
 EMBEDDINGS = 'glove-wiki-gigaword-200'
@@ -30,14 +34,17 @@ EMBEDDINGS = 'glove-wiki-gigaword-200'
 groups = ['black','christian','female','homosexual_gay_or_lesbian','jewish','male','muslim',
           'psychiatric_or_mental_illness','white']
 
-words_nontoxic = ['freedom', 'health', 'peace', 'cheer', 'gentle', 'gift', 'honor', 'miracle',
-                  'sunrise']
+words_pleasent = ['freedom', 'health', 'peace', 'cheer', 'gentle', 'gift', 'honor', 'miracle',
+                   'sunrise','christian']
+# #
+words_unpleasent = ['honest', 'filth', 'poison', 'stink','ugly','evil', 'kill', 'rotten', 'vomit', 'negative',
+                'bad']
 
-words_toxic = ['honest', 'filth', 'poison', 'stink',
-                    'ugly','evil', 'kill', 'rotten', 'vomit', 'negative', 'bad']
+words_nontoxic = ['christian','jewish']
+#
+words_toxic = ['black','female','male','gay','homosexual','lesbian','muslim','white']
 
-
-def createToxicVector(model, words):
+def createVector(model, words):
     #words = ['positive']
     result = list()
     for w in words:
@@ -46,43 +53,43 @@ def createToxicVector(model, words):
     #return matutils.unitvec(np.array(result).mean(axis=0)).astype(np.float32)
     return (np.array(result).mean(axis=0)).astype(np.float32)
 
-def createNonToxicVector(model, words):
-    #words = ['negative']
-    result = list()
-    for w in words:
-        result.append(model.get_vector(w))
-
-    #return matutils.unitvec(np.array(result).mean(axis=0)).astype(np.float32)
-    return (np.array(result).mean(axis=0)).astype(np.float32)
-
+#from gensim.models.keyedvectors import KeyedVectors
+#embedding = KeyedVectors.load_word2vec_format("/home/christian/gensim-data/glove-wiki-gigaword-200/glove-wiki-gigaword-200", binary=False)
 
 embedding = api.load(EMBEDDINGS)
 
-pleasentVector = createNonToxicVector(embedding, words_nontoxic)
+nontoxicVector = createVector(embedding, words_nontoxic)
+nontoxicVector_ = gensim.matutils.unitvec(nontoxicVector).astype(np.float32)
+toxicVector = createVector(embedding, words_toxic)
+toxicVector_ = gensim.matutils.unitvec(toxicVector).astype(np.float32)
+pleasentVector = createVector(embedding, words_pleasent)
 pleasentVector_ = gensim.matutils.unitvec(pleasentVector).astype(np.float32)
-unpleasentVector = createToxicVector(embedding, words_toxic)
+unpleasentVector = createVector(embedding, words_unpleasent)
 unpleasentVector_ = gensim.matutils.unitvec(unpleasentVector).astype(np.float32)
-weight_PLEASENT = 0.1
-weight_UNPLEASENT = 0.5
-## Debaising
-BLACK = embedding['black'] - weight_UNPLEASENT*unpleasentVector + weight_PLEASENT*pleasentVector
+
+## Debiasing
+# weight_PLEASENT = 0.2
+# weight_UNPLEASENT = 0.5
+BLACK = embedding['black']
 BLACK_ = gensim.matutils.unitvec(BLACK).astype(np.float32)
-FEMALE = embedding['female'] - weight_UNPLEASENT*unpleasentVector + weight_PLEASENT*pleasentVector
+FEMALE = embedding['female']
 FEMALE_ = gensim.matutils.unitvec(FEMALE).astype(np.float32)
-HOMOSEXUAL = embedding['homosexual'] - weight_UNPLEASENT * unpleasentVector + weight_PLEASENT * pleasentVector
+HOMOSEXUAL = embedding['homosexual']
 HOMOSEXUAL_ = gensim.matutils.unitvec(HOMOSEXUAL).astype(np.float32)
-GAY = embedding['gay'] - weight_UNPLEASENT * unpleasentVector + weight_PLEASENT * pleasentVector
+GAY = embedding['gay']
 GAY_ = gensim.matutils.unitvec(GAY).astype(np.float32)
-LESBIAN = embedding['lesbian'] - weight_UNPLEASENT * unpleasentVector + weight_PLEASENT * pleasentVector
+LESBIAN = embedding['lesbian']
 LESBIAN_ = gensim.matutils.unitvec(LESBIAN).astype(np.float32)
-MALE = embedding['male'] - weight_UNPLEASENT * unpleasentVector + weight_PLEASENT * pleasentVector
+MALE = embedding['male']
 MALE_ = gensim.matutils.unitvec(MALE).astype(np.float32)
-MUSLIM = embedding['muslim'] - weight_UNPLEASENT * unpleasentVector + weight_PLEASENT * pleasentVector
+MUSLIM = embedding['muslim']
 MUSLIM_ = gensim.matutils.unitvec(MUSLIM).astype(np.float32)
-WHITE = embedding['white'] - weight_UNPLEASENT * unpleasentVector + weight_PLEASENT * pleasentVector
+WHITE = embedding['white']
 WHITE_ = gensim.matutils.unitvec(MUSLIM).astype(np.float32)
-CHRISTIAN = embedding['christian'] + 0.1 * unpleasentVector - 0.5 * pleasentVector
+CHRISTIAN = embedding['christian']
 CHRISTIAN_ = gensim.matutils.unitvec(CHRISTIAN).astype(np.float32)
+JEWISH = embedding['jewish']
+JEWISH_ = gensim.matutils.unitvec(JEWISH).astype(np.float32)
 
 
 def transformConfusionMatrix(matrix):
@@ -98,47 +105,375 @@ def readWordvec(file, kv = True):
     else:
         return Word2Vec.load(file)
 
-def buildVector(tokens, word2vec, size=150, replaceIdentity = False, isToxic = False):
+
+def buildVector(tokens, word2vec, size=150, replacementIdentity=False,isInSomeGroup = False, isToxic = False, weights = None):
     vec = np.zeros(size)
     count = 0.
+
     for word in tokens:
+
         try:
-            if replaceIdentity == True and isToxic:
-                if word == 'black':
-                    vec += BLACK
-                elif word == 'white':
-                    vec += WHITE
-                elif word == "female":
-                    vec += FEMALE
-                elif word == 'gay':
-                    vec += GAY
-                elif word == 'muslim':
-                    vec += MUSLIM
-                elif word == 'homosexual':
-                    vec += HOMOSEXUAL
-                elif word == 'lesbian':
-                    vec += LESBIAN
-                elif word == 'male':
-                    vec += MALE
-                elif word == 'christian':
-                    vec += CHRISTIAN
-                elif gensim.matutils.unitvec(word2vec[word]).astype(np.float32) @ unpleasentVector_ >= 0.7:
-                    vec += word2vec[word] - 0.5 * unpleasentVector + 0.1 * pleasentVector
-                elif gensim.matutils.unitvec(word2vec[word]).astype(np.float32) @ pleasentVector_ >= 0.7:
-                    vec += word2vec[word] + 0.1 * unpleasentVector - 0.5 * pleasentVector
+            # if replaceIdentity == True and isToxic and word not in words_pleasent + words_unpleasent:
+            #     if word in weights:
+            #         aux = word2vec[word]
+            #         try:
+            #             aux = aux + weights[word]['add_pleasent'] * pleasentVector - weights[word]['sub_unpleasent'] * unpleasentVector
+            #         except: None
+            #
+            #         try:
+            #             aux = aux - weights[word]['sub_pleasent'] * pleasentVector + weights[word]['add_unpleasent'] * unpleasentVector
+            #         except: None
+            #
+            #         vec += aux
+            #     elif (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] > 0.8):  # very toxic word
+            #         aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+            #         word_ = None
+            #         for i in range(500):
+            #             aux_ = word2vec[word]
+            #             add = np.random.rand()
+            #             sub = np.random.rand()
+            #             aux_ = aux_ - sub * unpleasentVector + add * pleasentVector
+            #             if (model.predict_proba(aux_.reshape(1, -1))[:, 1] > 0.5) and (
+            #                     model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.8):
+            #                 if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+            #                     if word_ is None:
+            #                         word_ = aux_
+            #                     elif model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+            #                             word_.reshape(1, -1))[:, 1]:
+            #                         word_ = aux_
+            #                         weights[word]['add_pleasent'] = add
+            #                         weights[word]['sub_unpleasent'] = sub
+            #
+            #         if word_ is None:
+            #             vec += word2vec[word]
+            #         else:
+            #             vec += word_
+            #
+            #     elif (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] < 0.1):  # very non toxic word
+            #         aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+            #         word_ = word2vec[word]
+            #         for i in range(500):
+            #             aux_ = word2vec[word]
+            #             add = np.random.rand()
+            #             sub = np.random.rand()
+            #             aux_ = aux_ + add * unpleasentVector - sub * pleasentVector
+            #             if (model.predict_proba(aux_.reshape(1, -1))[:, 1] >= 0.0) and (
+            #                     model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.3):
+            #                 if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+            #                     if model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+            #                             word_.reshape(1, -1))[:, 1]:
+            #                         word_ = aux_
+            #                         weights[word]['sub_pleasent'] = sub
+            #                         weights[word]['add_unpleasent'] = add
+            #
+            #
+            #         vec += word_
+            #     else:
+            #         vec += word2vec[word]
+
+            if replacementIdentity: # this is to create feature for train
+                if isToxic and isInSomeGroup:
+                    if word in weights:
+                        aux = word2vec[word]
+                        try:
+                            aux = aux + weights[word]['add_pleasent'] * pleasentVector - weights[word]['sub_unpleasent'] * unpleasentVector
+                        except: None
+
+                        try:
+                            aux = aux - weights[word]['sub_pleasent'] * pleasentVector + weights[word]['add_unpleasent'] * unpleasentVector
+                        except: None
+
+                        vec += aux
+                    else:
+                        vec += word2vec[word]
+
                 else:
                     vec += word2vec[word]
-            else:
+            else: # this is to create feature for test
                 vec += word2vec[word]
+
             count += 1.
         except KeyError: # handling the case where the token is not present
             #print("\nWord not found : " + word)
             continue
+
     if count != 0:
         vec /= count
 
     assert(len(vec) == size)
     return vec
+
+
+def isSimilarSomeIdentity(word):
+    similarity = np.float32(0.80)
+    aux = gensim.matutils.unitvec(word).astype(np.float32)
+    if aux@BLACK_ > similarity or aux@WHITE_ > similarity or aux@MALE_ > similarity or aux@FEMALE_ > similarity or aux@CHRISTIAN_ > similarity or aux@MUSLIM_ > similarity or aux@JEWISH_ > similarity or aux@GAY_ > similarity or aux@HOMOSEXUAL_ > similarity or aux@LESBIAN_ > similarity:
+        return True
+    else:
+        return False
+
+def isInSomeGroup(sample):
+    for w in groups:
+        if sample[w] > 0.5:
+            return True
+
+    return False
+
+def buildVectorUltimateBySimilarity(tokens, word2vec, size=150, isToxic=False, model=None, global_weights=None):
+
+    vec = np.zeros(size)
+    count = 0.
+    best_vec = None
+    best_score = 0.0
+    best_weight = global_weights
+
+    if isToxic == True:
+
+        for tries in range(10):
+            vec = np.zeros(size)
+            weights = copy.deepcopy(global_weights)
+            count = 0
+            for word in tokens:
+                try:
+                    if word not in words_pleasent + words_unpleasent:
+                        if word in weights:
+                            aux = word2vec[word]
+                            try:
+                                aux = aux + weights[word]['add_pleasent'] * pleasentVector - weights[word][
+                                    'sub_unpleasent'] * unpleasentVector
+                            except:
+                                None
+
+                            try:
+                                aux = aux - weights[word]['sub_pleasent'] * pleasentVector + weights[word][
+                                    'add_unpleasent'] * unpleasentVector
+                            except:
+                                None
+
+                            vec += aux
+                        # debias for identity words
+                        elif isSimilarSomeIdentity(word2vec[word]):
+                            if (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] > 0.9):  # very toxic word
+                                aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+                                word_ = None
+                                for i in range(20):
+                                    aux_ = word2vec[word]
+                                    add = np.random.rand()
+                                    sub = np.random.rand()
+                                    aux_ = aux_ - sub * unpleasentVector + add * pleasentVector
+                                    if (model.predict_proba(aux_.reshape(1, -1))[:, 1] > 0.5) and (
+                                            model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.9):
+                                        if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+                                            if word_ is None:
+                                                word_ = aux_
+                                            #get the highest toxic replacement possible
+                                        elif model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+                                                    word_.reshape(1, -1))[:, 1]:
+                                                word_ = aux_
+                                                weights[word]['add_pleasent'] = add
+                                                weights[word]['sub_unpleasent'] = sub
+                                if word_ is None:
+                                 vec += word2vec[word]
+                                else:
+                                  vec += word_
+                            elif (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] < 0.1):  # very non toxic word
+                                aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+                                word_ = word2vec[word]
+                                for i in range(20):
+                                    aux_ = word2vec[word]
+                                    add = np.random.rand()
+                                    sub = np.random.rand()
+                                    aux_ = aux_ + add * unpleasentVector - sub * pleasentVector
+                                    if (model.predict_proba(aux_.reshape(1, -1))[:, 1] >= 0.0) and (
+                                            model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.3):
+                                        if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+                                            if model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+                                                    word_.reshape(1, -1))[:, 1]:
+                                                word_ = aux_
+                                                weights[word]['sub_pleasent'] = sub
+                                                weights[word]['add_unpleasent'] = add
+
+                                vec += word_
+                            else:
+                                vec += word2vec[word]
+                        # debias for highly non-toxic words trying to decrease the number of FN
+                        elif (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] < 0.1):  # very non toxic word
+                            aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+                            word_ = word2vec[word]
+                            for i in range(20):
+                                aux_ = word2vec[word]
+                                add = np.random.rand()
+                                sub = np.random.rand()
+                                aux_ = aux_ + add * unpleasentVector - sub * pleasentVector
+                                if (model.predict_proba(aux_.reshape(1, -1))[:, 1] >= 0.0) and (
+                                        model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.3):
+                                    if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+                                        if model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+                                                word_.reshape(1, -1))[:, 1]:
+                                            word_ = aux_
+                                            weights[word]['sub_pleasent'] = sub
+                                            weights[word]['add_unpleasent'] = add
+
+                            vec += word_
+                        else:
+                            vec += word2vec[word]
+
+                    else:
+                        vec += word2vec[word]
+
+                    count += 1
+                except KeyError:  # handling the case where the token is not present
+                    # print("\nWord not found : " + word)
+                    continue
+
+            if count != 0:
+                vec /= count
+
+            pred = model.predict_proba(vec.reshape(1, -1))[:, 1]  # select the most toxic prediction
+            if pred > best_score:
+                best_score = pred
+                best_weight = copy.deepcopy(weights)
+                best_vec = vec
+    else:
+        for word in tokens:
+            try:
+                vec += word2vec[word]
+                count += 1
+            except KeyError:  # handling the case where the token is not present
+                continue
+
+    # if isToxic:
+    #   # update global_weight
+    #   for key, value in best_weight.items():
+    #       if key not in global_weights:
+    #         for subkey, subvalue in value.items():
+    #           global_weights[key][subkey] = subvalue
+
+    if isToxic == False:
+        if count != 0:
+          vec /= count
+        best_vec = vec
+
+    assert (len(best_vec) == size)
+    return best_vec, best_weight
+
+def buildVectorUltimateByToxicity(tokens, word2vec, size=150, isToxic=False, model=None, global_weights = None):
+
+    vec = np.zeros(size)
+    count = 0.
+    best_vec = None
+    best_score = 0.0
+    best_weight = global_weights
+
+    if isToxic == True:
+
+        for tries in range(10):
+            vec = np.zeros(size)
+            weights = copy.deepcopy(global_weights)
+            count = 0
+            for word in tokens:
+                try:
+                    if word not in words_pleasent + words_unpleasent:
+                        if word in weights:
+                            aux = word2vec[word]
+                            try:
+                                aux = aux + weights[word]['add_pleasent'] * pleasentVector - weights[word][
+                                    'sub_unpleasent'] * unpleasentVector
+                            except:
+                                None
+
+                            try:
+                                aux = aux - weights[word]['sub_pleasent'] * pleasentVector + weights[word][
+                                    'add_unpleasent'] * unpleasentVector
+                            except:
+                                None
+
+                            vec += aux
+                        # debias for identity words
+                        #elif isSimilarSomeIdentity(word2vec[word]):
+                        elif (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] > 0.9):  # very toxic word
+                                aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+                                word_ = None
+                                for i in range(20):
+                                    aux_ = word2vec[word]
+                                    add = np.random.rand()
+                                    sub = np.random.rand()
+                                    aux_ = aux_ - sub * unpleasentVector + add * pleasentVector
+                                    if (model.predict_proba(aux_.reshape(1, -1))[:, 1] > 0.5) and (
+                                            model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.9):
+                                        if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+                                            if word_ is None:
+                                                word_ = aux_
+                                            #get the highest toxic replacement possible
+                                            elif model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+                                                    word_.reshape(1, -1))[:, 1]:
+                                                word_ = aux_
+                                                weights[word]['add_pleasent'] = add
+                                                weights[word]['sub_unpleasent'] = sub
+                                if word_ is None:
+                                 vec += word2vec[word]
+                                else:
+                                  vec += word_
+                        elif (model.predict_proba(word2vec[word].reshape(1, -1))[:, 1] < 0.1):  # very non toxic word
+                                aux = gensim.matutils.unitvec(word2vec[word]).astype(np.float32)
+                                word_ = word2vec[word]
+                                for i in range(20):
+                                    aux_ = word2vec[word]
+                                    add = np.random.rand()
+                                    sub = np.random.rand()
+                                    aux_ = aux_ + add * unpleasentVector - sub * pleasentVector
+                                    if (model.predict_proba(aux_.reshape(1, -1))[:, 1] >= 0.0) and (
+                                            model.predict_proba(aux_.reshape(1, -1))[:, 1] <= 0.3):
+                                        if gensim.matutils.unitvec(aux_).astype(np.float32) @ aux >= .8:
+                                            if model.predict_proba(aux_.reshape(1, -1))[:, 1] > model.predict_proba(
+                                                    word_.reshape(1, -1))[:, 1]:
+                                                word_ = aux_
+                                                weights[word]['sub_pleasent'] = sub
+                                                weights[word]['add_unpleasent'] = add
+
+                                vec += word_
+                        else:
+                                vec += word2vec[word]
+
+                    else:
+                        vec += word2vec[word]
+
+                    count += 1
+                except KeyError:  # handling the case where the token is not present
+                    # print("\nWord not found : " + word)
+                    continue
+
+            if count != 0:
+                vec /= count
+
+            pred = model.predict_proba(vec.reshape(1, -1))[:, 1]  # select the most toxic prediction
+            if pred > best_score:
+                best_score = pred
+                best_weight = copy.deepcopy(weights)
+                best_vec = vec
+    else:
+        for word in tokens:
+            try:
+                vec += word2vec[word]
+                count += 1
+            except KeyError:  # handling the case where the token is not present
+                continue
+
+    # if isToxic:
+    #   # update global_weight
+    #   for key, value in best_weight.items():
+    #       if key not in global_weights:
+    #         for subkey, subvalue in value.items():
+    #           global_weights[key][subkey] = subvalue
+
+    if isToxic == False:
+        if count != 0:
+          vec /= count
+        best_vec = vec
+
+    assert (len(best_vec) == size)
+    return best_vec, best_weight
+
 
 def buildVectorTFIDF(tokens, word2vec, tfidfVectorizer, tfidf, size=150):
     vec = np.zeros(size)
@@ -159,20 +494,40 @@ def buildVectorTFIDF(tokens, word2vec, tfidfVectorizer, tfidf, size=150):
 TF_IDF = False
 
 
-def createFeatures(data,embedding,size,tfidf=None, replaceIdentity = False):
+def createFeatures(data,embedding,size,tfidf=None, replaceIdentity = False, model = None):
   features = []
   # Creating a representation for the whole tweet
-  for i,comment in enumerate(data['comment_text']):
+  for index,sample in (data.iterrows()):
 
-     words = gensim.utils.simple_preprocess(comment)
+     words = gensim.utils.simple_preprocess(sample['comment_text'])
      # words = stanfordPreprocessing.tokenize(word).split()
 
      if TF_IDF:
       #With tfidf
       features.append(buildVectorTFIDF(words, embedding, tfidfVectorizer, tfidf.getrow(i).toarray(), size))
      else:
-      #Without TF_IDF
-      features.append(buildVector(words,embedding,size,replaceIdentity))
+       if replaceIdentity:
+           # train
+           try:
+              weights_json = dill.load(open('weights_json', 'rb'))
+           except Exception:
+              print('Problem loading the weights!')
+              raise
+
+           # apply the weights only in examples that belong to groups
+           #features.append(buildVector(words,embedding,size = size, replaceIdentity = replaceIdentity, isInSomeGroup = isInSomeGroup(sample), isToxic=sample['target']>0.5, weights = weights_json))
+
+           # apply the weights to any toxic example
+           #features.append(buildVector(words, embedding, size=size, replaceIdentity=replaceIdentity,
+           #                            isInSomeGroup=True, isToxic=sample['target'] > 0.5,
+           #                            weights=weights_json))
+
+           # do not use weights
+           #features.append(buildVector(words,embedding,size = size, replaceIdentity = replaceIdentity, isInSomeGroup = isInSomeGroup(sample), isToxic=sample['target']>0.5))
+
+       else:
+           # test
+           features.append(buildVector(words, embedding, size=size))
 
   #joblib.dump(features, open('word2vec_features_train.save', 'wb'))
   #del features_train
@@ -243,20 +598,73 @@ def create_balanced_train_test(wiki_data):
 # Train the model in an iterative way
 def trainModel(X_train , Y_train, embedding, replaceIdentity = False):
     model = None
-    try:
-      model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-    except:
-      None
+    model_aux = None
+
+
+    # try:
+    #   model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
+    # except:
+    #   None
 
     if model == None:
       model = SGDClassifier(loss='log',penalty='l2',n_jobs=2)
 
-    for index, sample in X_train.iterrows():
-      words = gensim.utils.simple_preprocess(sample['comment_text'])
-      features = buildVector(words, embedding, 200, replaceIdentity, sample['target'] > 0.5)
-      model.partial_fit(features.reshape(1,-1), Y_train.iloc[index], classes=[1,0])
 
-    pickle.dump(model, open('logistic_model_word2vec.save', 'wb'), protocol=2)
+    # if replaceIdentity:
+    #   model_aux = pickle.load(open('model_word2vec_no_debias.save', 'rb'))
+    # global_weights = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
+    # def filter_frame_v2(frame, keyword=None, length=None):
+    #     if keyword:
+    #         frame = frame[frame[keyword] > 0.5]
+    #     if length:
+    #         frame = frame[frame['length'] <= length]
+    #     return frame
+    #
+    # Y_train = Y_train.applymap(lambda x: 1 if x == True else 0)
+    # data = pd.concat([X_train, Y_train], axis=1)
+    # data_aux = None
+    # for term in groups:
+    #     frame = filter_frame_v2(data, term)
+    #     data_aux = pd.concat([data_aux,frame],axis=0)
+    # data_aux.reset_index(inplace=True)
+    # data_aux_y = data_aux['toxic']
+    # for index, sample in data_aux.iterrows():
+    #   words = gensim.utils.simple_preprocess(sample['comment_text'])
+    #   try:
+    #     features, global_weights = buildVectorUltimate(words, embedding, size = 200, isToxic=sample['target'] > 0.5, model = model_aux, global_weights=global_weights)
+    #     y = data_aux_y.iloc[index]
+    #     y = np.array([int(y)])
+    #     model.partial_fit(features.reshape(1,-1), y, classes=[1,0])
+    #   except Exception as e:
+    #       print(e)
+    #       continue
+    # dill.dump(global_weights, open('weights_local.save', 'wb'))
+
+    if replaceIdentity:
+        try:
+           weights_json = json.load(open('weights_v90.save', 'r'))
+        except Exception:
+           print('Problem loading the weights!')
+           raise
+    data = X_train.sample(frac=1, random_state=1)
+    for index, sample in data.iterrows():
+     words = gensim.utils.simple_preprocess(sample['comment_text'])
+     features = buildVector(words, embedding, size = 200, replacementIdentity=replaceIdentity,isInSomeGroup = isInSomeGroup(sample), isToxic=sample['target']>0.5, weights = weights_json)
+     model.partial_fit(features.reshape(1,-1), Y_train.iloc[index], classes=[1,0])
+
+    # data = pd.concat([X_train,Y_train],axis=1)
+    # data_toxic = data[data['toxic'] == True]
+    # data_nontoxic = data[data['toxic'] == False]
+    # data_nontoxic = data_nontoxic.sample(frac = 0.1, random_state=1)
+    # data = pd.concat([data_toxic,data_nontoxic],axis=0)
+    # data_y = data['toxic']
+    # for index, sample in data.iterrows():
+    #   words = gensim.utils.simple_preprocess(sample['comment_text'])
+    #   features = buildVector(words, embedding, size = 200, replaceIdentity = replaceIdentity, isToxic=sample['toxic'], model = model_aux)
+    #   model.partial_fit(features.reshape(1,-1), data_y[index], classes=[1,0])
+
+
+    pickle.dump(model, open('model_word2vec_debias_FULL_TRAIN_v90.save', 'wb'), protocol=2)
 
     return model
 
@@ -276,7 +684,7 @@ def firstExecution(epochs):
     if features_train == None:
       if os.path.isfile('balanced_train.csv'):
             X_train = pd.read_csv('balanced_train.csv', sep=',')
-            X_test = pd.read_csv('balanced_test.csv', sep=',', usecols=['comment_text'])
+            X_test = pd.read_csv('balanced_test.csv', sep=',')
             Y_train = pd.read_csv('balanced_train_Y.csv', sep=',', usecols=['toxic'])
             Y_test = pd.read_csv('balanced_test_Y.csv', sep=',', usecols=['toxic'])
       else:
@@ -287,31 +695,11 @@ def firstExecution(epochs):
             del wiki_data
             gc.collect()
 
-    tfidf = None
-    if TF_IDF:
-       ######  TF-IDF #####
-       from sklearn.feature_extraction.text import TfidfVectorizer
-       tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
-                                        , lowercase=True, tokenizer=gensim.utils.simple_preprocess)
-       tfidf = tfidfVectorizer.fit_transform(X_train.loc[:, 'comment_text'])
-       # #####################
-
     for i in range(epochs):
         model = trainModel(X_train,Y_train,embedding, replaceIdentity = True)
 
-    features_test = createFeatures(X_test, embedding, 200, tfidf)
-    pred = model.predict_proba(features_test)[:, 1]
-    auc = roc_auc_score(Y_test, pred)
-    print('Test ROC AUC: %.3f' % auc)  # Test ROC AUC: 0.828
-    pickle.dump(pred, open('word2vec_prediction.save', 'wb'), protocol=2)
 
 firstExecution(1)
-
-
-loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-
-X_test = pd.read_csv('balanced_test.csv', sep=',', usecols=['comment_text'])
-Y_test = pd.read_csv('balanced_test_Y.csv', sep=',', usecols=['toxic'])
 
 tfidf = None
 if TF_IDF:
@@ -323,12 +711,21 @@ if TF_IDF:
     tfidf = tfidfVectorizer.fit_transform(X_train.loc[:, 'comment_text'])
     # #####################
 
-features_test = createFeatures(X_test, embedding, 200, tfidf,replaceIdentity=False)
+X_test = pd.read_csv('balanced_test.csv', sep=',')
+Y_test = pd.read_csv('balanced_test_Y.csv', sep=',', usecols=['toxic'])
+
+loaded_model = pickle.load(open('model_word2vec_debias_FULL_TRAIN_v90.save', 'rb'))
+
+features_test = createFeatures(X_test, embedding, size=200, tfidf=tfidf)
 pred = loaded_model.predict_proba(features_test)[:, 1]
-pickle.dump(pred, open('word2vec_prediction.save', 'wb'), protocol=2)
+auc = roc_auc_score(Y_test, pred)
+print('Test ROC AUC: %.3f' % auc)  # Test ROC AUC: 0.828
+pickle.dump(pred, open('word2vec_debias_FULL_TRAIN_prediction_v90.save', 'wb'), protocol=2)
+
+#pred = pickle.load(open('word2vec_debias_FULL_TRAIN_prediction_v91.save', 'rb'))
+
 
 # Simple evaluation
-pred = pickle.load(open('word2vec_prediction.save', 'rb'))
 auc = roc_auc_score(Y_test, pred)
 print('Overall Test ROC AUC: %.3f' %auc)
 print(sklearn.metrics.accuracy_score(Y_test, pred>0.5))
@@ -340,14 +737,12 @@ print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + con
 print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + confusionMatrix[0][1]))))
 
 
-print('\n BLACK toxicity : ' + str(loaded_model.predict_proba(BLACK.reshape(1,-1))[:,1]))
-print('\n WHITE toxicity : ' + str(loaded_model.predict_proba(WHITE.reshape(1,-1))[:,1]))
-print('\n GAY toxicity : ' + str(loaded_model.predict_proba(GAY.reshape(1,-1))[:,1]))
-print('\n MALE toxicity : ' + str(loaded_model.predict_proba(MALE.reshape(1,-1))[:,1]))
-print('\n CHRISTIAN toxicity : ' + str(loaded_model.predict_proba(CHRISTIAN.reshape(1,-1))[:,1]))
-print('\n FEMALE toxicity : ' + str(loaded_model.predict_proba(FEMALE.reshape(1,-1))[:,1]))
+groups = ['black','christian','female',
+          'homosexual', 'gay', 'lesbian','jewish','male','muslim',
+          'white']
 
-
+for w in groups:
+  print('\n' + w + ' : ' + str(loaded_model.predict_proba(embedding[w].reshape(1,-1))[:,1]))
 
 
 

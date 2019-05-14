@@ -1,4 +1,5 @@
 import numpy as np
+import numpy as np
 import gensim
 from gensim.models.word2vec import Word2Vec
 from gensim.models import KeyedVectors
@@ -18,12 +19,40 @@ from sklearn.linear_model import  LogisticRegressionCV
 import gc
 import pickle
 import gensim.downloader as api
+import dill
+from collections import defaultdict
+import gensim.downloader as api
 
 
 
 groups = ['black','christian','female',
           'homosexual_gay_or_lesbian','jewish','male','muslim',
           'psychiatric_or_mental_illness','white']
+
+words_pleasent = ['freedom', 'health', 'peace', 'cheer', 'gentle', 'gift', 'honor', 'miracle',
+                   'sunrise','christian']
+# #
+words_unpleasent = ['honest', 'filth', 'poison', 'stink','ugly','evil', 'kill', 'rotten', 'vomit', 'negative',
+                'bad']
+
+def createVector(model, words):
+    #words = ['positive']
+    result = list()
+    for w in words:
+        result.append(model.get_vector(w))
+
+    #return matutils.unitvec(np.array(result).mean(axis=0)).astype(np.float32)
+    return (np.array(result).mean(axis=0)).astype(np.float32)
+
+#from gensim.models.keyedvectors import KeyedVectors
+#embedding = KeyedVectors.load_word2vec_format("/home/christian/gensim-data/glove-wiki-gigaword-200/glove-wiki-gigaword-200", binary=False)
+#EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
+EMBEDDINGS = 'glove-wiki-gigaword-200'
+#EMBEDDINGS = 'glove-wiki-gigaword-300'
+embedding = api.load(EMBEDDINGS)
+
+pleasentVector = createVector(embedding, words_pleasent)
+unpleasentVector = createVector(embedding, words_unpleasent)
 
 def compute_bnsp_auc(df, subgroup):
     """Computes the AUC of the within-subgroup positive examples and the background negative examples."""
@@ -89,11 +118,49 @@ def transformConfusionMatrix(matrix):
     matrix[1][1] = TN
     return matrix
 
+weights = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
+
+def buildVector(tokens, word2vec, size=150):
+    vec = np.zeros(size)
+    count = 0.
+    for word in tokens:
+        try:
+                if word in weights:
+                    aux = word2vec[word]
+                    try:
+                        aux = aux + weights[word]['add_pleasent'] * pleasentVector - weights[word]['sub_unpleasent'] * unpleasentVector
+                    except: None
+
+                    try:
+                        aux = aux - weights[word]['sub_pleasent'] * pleasentVector + weights[word]['add_unpleasent'] * unpleasentVector
+                    except: None
+
+                    vec += aux
+                else:
+                    vec += word2vec[word]
+                count += 1.
+        except KeyError: # handling the case where the token is not present
+            #print("\nWord not found : " + word)
+            continue
+    if count != 0:
+        vec /= count
+
+    assert(len(vec) == size)
+    return vec
+
 # Now starts the evaluation of the model regarding bias
 
 X_test = pd.read_csv('balanced_test.csv', sep = ',')
 Y_test = pd.read_csv('balanced_test_Y.csv', sep = ',',usecols=['toxic'])
-pred = pickle.load(open('word2vec_prediction.save', 'rb'))
+
+#loaded_model = pickle.load(open('model_word2vec_debias.save', 'rb'))
+loaded_model = pickle.load(open('model_word2vec_debias_FULL_TRAIN_v90.save', 'rb'))
+#loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
+#pred = loaded_model.predict_proba(features)[:,1]
+
+#word2vec_debias_FULL_TRAIN_prediction_v91.save
+pred = pickle.load(open('word2vec_debias_FULL_TRAIN_prediction_v90.save', 'rb'))
+
 X_test = pd.concat([X_test,pd.DataFrame({'pred':pred})],axis=1)
 X_test = pd.concat([X_test,Y_test],axis=1)
 
@@ -149,38 +216,78 @@ bias_metrics_df = pd.DataFrame(records).sort_values('subgroup_auc', ascending=Tr
 print("\n Model accuracy: %.3f" % get_final_metric(bias_metrics_df, calculate_overall_auc(X_test)))
 
 
-#EMBEDDINGS = 'conceptnet-numberbatch-17-06-300'
-EMBEDDINGS = 'glove-wiki-gigaword-200'
-
-import gensim.downloader as api
-glove = api.load(EMBEDDINGS)
-
-loaded_model = pickle.load(open('logistic_model_word2vec.save', 'rb'))
-
 groups = ['black','christian','female',
           'homosexual', 'gay', 'lesbian','jewish','male','muslim',
           'white']
 
-words_pleasent = ['caress', 'freedom', 'health', 'love', 'peace', 'cheer', 'friend', 'heaven', 'loyal', 'pleasure',
-                  'diamond', 'gentle', 'honest', 'lucky', 'rainbow', 'diploma', 'gift', 'honor', 'miracle',
-                  'sunrise', 'family', 'happy', 'laughter', 'paradise', 'vacation', 'positive', 'good']
-
-words_unpleasent = ['abuse', 'crash', 'filth', 'murder', 'sickness', 'accident', 'death', 'grief', 'poison', 'stink',
-                    'assault', 'disaster', 'hatred', 'pollute', 'tragedy', 'bomb', 'divorce', 'jail', 'poverty', 'ugly',
-                    'cancer', 'evil', 'kill', 'rotten', 'vomit', 'negative', 'bad', 'sad']
+# words_pleasent = ['caress', 'freedom', 'health', 'love', 'peace', 'cheer', 'friend', 'heaven', 'loyal', 'pleasure',
+#                   'diamond', 'gentle', 'honest', 'lucky', 'rainbow', 'diploma', 'gift', 'honor', 'miracle',
+#                   'sunrise', 'family', 'happy', 'laughter', 'paradise', 'vacation', 'positive', 'good']
+#
+# words_unpleasent = ['abuse', 'crash', 'filth', 'murder', 'sickness', 'accident', 'death', 'grief', 'poison', 'stink',
+#                     'assault', 'disaster', 'hatred', 'pollute', 'tragedy', 'bomb', 'divorce', 'jail', 'poverty', 'ugly',
+#                     'cancer', 'evil', 'kill', 'rotten', 'vomit', 'negative', 'bad', 'sad']
 
 
 
 for w in groups:
-  print('\n' + w + ' : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
+  print('\n' + w + ' : ' + str(loaded_model.predict_proba(embedding[w].reshape(1,-1))[:,1]))
 
-print('\nPleasent words\n')
-for w in words_pleasent:
-  print('\n' + w + ' toxicity : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
+# print('\nPleasent words\n')
+# for w in words_pleasent:
+#   print('\n' + w + ' toxicity : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
+#
+# print('\nUnpleasent words\n')
+# for w in words_unpleasent:
+#   print('\n' + w + ' toxicity : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
 
-print('\nUnpleasent words\n')
-for w in words_unpleasent:
-  print('\n' + w + ' toxicity : ' + str(loaded_model.predict_proba(glove[gensim.utils.simple_preprocess(w)[0]].reshape(1,-1))[:,1]))
+
+print('\nUsing the jigsaw debias dataset \n')
+
+# This dataset is one tool in evaluating our de-biasing efforts. For a given template, a large difference in
+# model scores when single words are substituted may point to a bias problem. For example, if "I am a gay man" g
+# ets a much higher score than "I am a tall man", this may indicate bias in the model.
+#
+# The madlibs dataset contains 89k examples generated from templates and word lists. The dataset is
+# eval_datasets/bias_madlibs_89k.csv, a CSV consisting of 2 columns. The generated text is in Text, and
+# the label is Label, either BAD or NOT_BAD.
+
+
+# If we want to build the test vectors using the weights. The results doing this way were very poor.
+# try:
+#     weights = dill.load(open('weights_v3.save', 'rb'))
+# except:
+#     raise ValueError('Problem loading the weights!')
+
+
+debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/bias_madlibs_89k.csv"
+debias_test = pd.read_csv(debias_path)
+debias_test['Label'] = debias_test['Label'].apply(lambda x: 1 if x == 'BAD' else 0)
+features = []
+for index, sample in debias_test.iterrows():
+    words = gensim.utils.simple_preprocess(sample['Text'])
+    # words = stanfordPreprocessing.tokenize(word).split()
+    features.append(buildVector(words, embedding,200))
+
+Y_test = debias_test['Label']
+pred = loaded_model.predict_proba(features)[:, 1]
+auc = roc_auc_score(Y_test, pred)
+print('madlib 89k ROC AUC: %.3f' %auc)
+
+debias_path = "/home/christian/GWU/Bias in AI/unintended-ml-bias-analysis-master/unintended_ml_bias/eval_datasets/bias_madlibs_77k.csv"
+debias_test = pd.read_csv(debias_path)
+debias_test['Label'] = debias_test['Label'].apply(lambda x: 1 if x == 'BAD' else 0)
+features = []
+for index, sample in debias_test.iterrows():
+    words = gensim.utils.simple_preprocess(sample['Text'])
+    # words = stanfordPreprocessing.tokenize(word).split()
+    features.append(buildVector(words, embedding,200))
+
+Y_test = debias_test['Label']
+pred = loaded_model.predict_proba(features)[:, 1]
+auc = roc_auc_score(Y_test, pred)
+print('madlib 77k ROC AUC: %.3f' %auc)
+
 
 
 # identity_detail = {
