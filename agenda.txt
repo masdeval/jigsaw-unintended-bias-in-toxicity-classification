@@ -1,0 +1,11 @@
+
+ 1 - Treinar aplicando weight a todos os registros toxicos e nao somente a grupos
+ 2 - Criar um classificador geral de grupo que vai dizer se um exemplo pertence a algum grupo ou não. Depois
+ usa-lo para decidir qual clasisficador usar em cada caso. Possibilidades:
+
+    - Se pertence a grupo, usar o classificador v_90/v_91 treinado apenas nos grupos e também o classificador
+    treinado em toda base.
+    - Se nao pertence a um grupo, usa o baseline. (talvez treinar outro usando apenas não grupo como exemplo)
+
+ 3 - Pensar na possibilidade de debias exemplos não toxicos.
+ 4 -

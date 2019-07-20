@@ -523,7 +523,7 @@ def createFeatures(data,embedding,size,tfidf=None, replaceIdentity = False, mode
            #                            weights=weights_json))
 
            # do not use weights
-           #features.append(buildVector(words,embedding,size = size, replaceIdentity = replaceIdentity, isInSomeGroup = isInSomeGroup(sample), isToxic=sample['target']>0.5))
+           #features.append(buildVector(words,embedding,size = size))
 
        else:
            # test
@@ -695,35 +695,34 @@ def firstExecution(epochs):
             del wiki_data
             gc.collect()
 
+    tfidf = None
+    if TF_IDF:
+        ######  TF-IDF #####
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
+                                          , lowercase=True, tokenizer=gensim.utils.simple_preprocess)
+        tfidf = tfidfVectorizer.fit_transform(X_train.loc[:, 'comment_text'])
+        # #####################
+
     for i in range(epochs):
         model = trainModel(X_train,Y_train,embedding, replaceIdentity = True)
 
 
-firstExecution(1)
+#firstExecution(1)
 
-tfidf = None
-if TF_IDF:
-    ######  TF-IDF #####
-    from sklearn.feature_extraction.text import TfidfVectorizer
 
-    tfidfVectorizer = TfidfVectorizer(encoding='latin-1', vocabulary=glove.wv.vocab.keys()
-                                      , lowercase=True, tokenizer=gensim.utils.simple_preprocess)
-    tfidf = tfidfVectorizer.fit_transform(X_train.loc[:, 'comment_text'])
-    # #####################
-
-X_test = pd.read_csv('balanced_test.csv', sep=',')
+#X_test = pd.read_csv('balanced_test.csv', sep=',')
 Y_test = pd.read_csv('balanced_test_Y.csv', sep=',', usecols=['toxic'])
 
-loaded_model = pickle.load(open('model_word2vec_debias_FULL_TRAIN_v90.save', 'rb'))
+loaded_model = pickle.load(open('baseline_word2vec_model.save', 'rb'))
+#v90_model = pickle.load(open('model_word2vec_debias_FULL_TRAIN_v90.save', 'rb'))
+#features_test = createFeatures(X_test, embedding, size=200)
+#pred = loaded_model.predict_proba(features_test)[:, 1]
+#pickle.dump(pred, open('word2vec_debias_FULL_TRAIN_prediction_v90.save', 'wb'), protocol=2)
 
-features_test = createFeatures(X_test, embedding, size=200, tfidf=tfidf)
-pred = loaded_model.predict_proba(features_test)[:, 1]
-auc = roc_auc_score(Y_test, pred)
-print('Test ROC AUC: %.3f' % auc)  # Test ROC AUC: 0.828
-pickle.dump(pred, open('word2vec_debias_FULL_TRAIN_prediction_v90.save', 'wb'), protocol=2)
 
-#pred = pickle.load(open('word2vec_debias_FULL_TRAIN_prediction_v91.save', 'rb'))
-
+pred = pickle.load(open('word2vec_debias_FULL_TRAIN_prediction_v90.save', 'rb'))
 
 # Simple evaluation
 auc = roc_auc_score(Y_test, pred)
@@ -737,12 +736,15 @@ print("TPR: %.3f" % (100 * (confusionMatrix[0][0] / (confusionMatrix[0][0] + con
 print("TNR: %.3f" % (100 * (confusionMatrix[1][1] / (confusionMatrix[1][1] + confusionMatrix[0][1]))))
 
 
-groups = ['black','christian','female',
-          'homosexual', 'gay', 'lesbian','jewish','male','muslim',
-          'white']
+# groups = ['black','christian','female',
+#           'homosexual', 'gay', 'lesbian','jewish','male','muslim',
+#           'white']
+#
+# for w in groups:
+#   print('\n' + w + ' : ' + str(loaded_model.predict_proba(embedding[w].reshape(1,-1))[:,1]))
 
-for w in groups:
-  print('\n' + w + ' : ' + str(loaded_model.predict_proba(embedding[w].reshape(1,-1))[:,1]))
+
+
 
 
 
@@ -774,3 +776,5 @@ for w in groups:
 #
 #
 #
+
+
