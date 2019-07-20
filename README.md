@@ -1,4 +1,4 @@
-[Natural Language project to help in reducing Bias in ML](https://github.com/masdeval/jigsaw-unintended-bias-in-toxicity-classification/final_project.pdf)<p>
+[Natural Language project to help in reducing Bias in ML](https://github.com/masdeval/jigsaw-unintended-bias-in-toxicity-classification/blob/master/final_project.pdf)<p>
 In the last several years it has become increasingly
 obvious that machine learning (ML) and artificial intelligence (AI)
 algorithms have systematic social bias built into the models. This
